@@ -1,0 +1,104 @@
+version: '3'
+
+vars:
+  MODULE: github.com/PodPloy/podploy
+  BIN_DIR: bin
+  GOOS: linux
+  GOARCH: amd64
+
+tasks:
+  default:
+    desc: "Default task: Builds the project"
+    cmds:
+      - task: build
+
+  setup:
+    desc: "Installs Git hooks (Run this once after cloning)"
+    cmds:
+      - lefthook install
+
+  dev:
+    desc: "Starts BOTH Server and Agent in parallel (Logs will be mixed)"
+    deps: [dev:server, dev:agent]
+
+  dev:server:
+    desc: "Starts only the SERVER with Hot Reload"
+    cmds:
+      - air -c .air.server.toml
+
+  dev:agent:
+    desc: "Starts only the AGENT with Hot Reload"
+    cmds:
+      - air -c .air.agent.toml
+
+  generate:
+    desc: "Regenerates all code (Ent, Proto, Mocks)"
+    cmds:
+      - task: generate:ent
+      - task: generate:proto
+      - task: generate:mocks
+
+  generate:ent:
+    desc: "Generates Ent ORM code"
+    dir: internal/adapter/storage/ent
+    cmds:
+      - go generate ./...
+    sources:
+      - schema/*.go
+
+  generate:proto:
+    desc: "Compiles .proto files to Go"
+    cmds:
+      - protoc --go_out=. --go_grpc_out=. proto/**/*.proto
+    sources:
+      - proto/**/*.proto
+
+  generate:mocks:
+    desc: "Generates mocks for domain interfaces"
+    cmds:
+      - mockery --all --dir internal/domain/ports --output internal/mocks --outpkg mocks
+
+  build:
+    desc: "Builds static binaries for Linux"
+    cmds:
+      - echo "Building Server..."
+      - CGO_ENABLED=0 GOOS={{.GOOS}} go build -o {{.BIN_DIR}}/server ./cmd/server
+      - echo "Building Agent..."
+      - CGO_ENABLED=0 GOOS={{.GOOS}} go build -o {{.BIN_DIR}}/agent ./cmd/agent
+    sources:
+      - "**/*.go"
+      - "go.mod"
+
+  lint:
+    desc: "Runs static code analysis (Linter)"
+    cmds:
+      - golangci-lint run ./...
+
+  security:
+    desc: "Checks for known vulnerabilities in dependencies"
+    cmds:
+      - govulncheck ./...
+
+  test:
+    desc: "Runs unit tests (no integration)"
+    cmds:
+      - go test -race -v ./internal/... ./pkg/...
+
+  migrate:diff:
+    desc: "Creates a new SQL migration file based on Ent schema changes"
+    dir: internal/adapter/storage/ent
+    vars:
+      NAME: '{{.NAME | default "changes"}}'
+    cmds:
+      - atlas migrate diff {{.NAME}} \
+        --dir "file://migrations" \
+        --to "ent://schema" \
+        --dev-url "sqlite://file?mode=memory&_fk=1"
+
+  migrate:apply:
+    desc: "Applies pending migrations to the local DB"
+    dir: internal/adapter/storage/ent
+    cmds:
+      - atlas migrate apply \
+        --dir "file://migrations" \
+        --url "sqlite://dev.db?_fk=1"

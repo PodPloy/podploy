@@ -1,0 +1,265 @@
+Enum service_type {
+  application   [note: "Standard web service (Node, Go, Python)"]
+  database      [note: "Managed database"]
+  worker        [note: "Background process without exposed port"]
+  job           [note: "Cronjob or scheduled task"]
+}
+
+Enum deployment_status {
+  queued        [note: "Waiting for turn"]
+  building      [note: "Building Docker image"]
+  deploying     [note: "Sending to Agent"]
+  healthy       [note: "Running correctly"]
+  unhealthy     [note: "Healthcheck failed"]
+  failed        [note: "Build or startup error"]
+}
+
+Enum volume_mode {
+  rw            [note: "Read and Write"]
+  ro            [note: "Read Only"]
+}
+
+Enum git_provider {
+  github
+  gitlab
+  bitbucket
+  custom_git [note: "Any generic Git server (Gitea, Bare Metal)"]
+}
+
+Enum template_source {
+  registry_image  [note: "Public or private image (Docker Hub, GHCR)"]
+  repo_file       [note: "A file (Dockerfile/Compose) in YOUR central repository"]
+}
+
+Enum source_type {
+  marketplace   [note: "Comes from the template catalog (Admin)"]
+  git_repo      [note: "Comes from the user's source code (User)"]
+}
+
+Enum engine_compatibility {
+  any             [note: "Works on both Docker and Podman"]
+  docker_only     
+  podman_only
+}
+
+Table users {
+  id uuid [pk]
+  email varchar [unique, not null]
+  password_hash varchar [not null]
+  full_name varchar
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  active boolean [default: true]
+}
+
+Table organizations {
+  id uuid [pk]
+  name varchar [not null]
+  slug varchar [unique, note: "For SEO-friendly URLs"]
+  created_at timestamp
+  updated_at timestamp [default: `now()`]
+  active boolean [default: true]
+  
+  Note: "The main tenant. Everything belongs to an Org."
+}
+
+Table organization_members {
+  organization_id uuid [ref: > organizations.id]
+  user_id uuid [ref: > users.id]
+  role varchar [note: "owner, admin, developer, viewer"]
+  
+  Indexes {
+    (organization_id, user_id) [pk]
+  }
+}
+
+Table templates {
+  id uuid [pk]
+  
+  name varchar [not null, note: "Ex: 'PostgreSQL', 'Redis'"]
+  logo_url varchar
+  category varchar
+  
+  image_name varchar [not null, note: "postgres:16-alpine"]
+ 
+  default_port int
+  default_env_vars json
+  
+  active boolean [default: true]
+}
+
+Table nodes {
+  id uuid [pk]
+  organization_id uuid [ref: > organizations.id]
+  
+  name varchar [not null, note: "Friendly name: 'VPS-Miami'"]
+  hostname varchar
+  ip_address varchar [note: "IP detected during handshake"]
+
+  secret_token varchar [note: "Unique token for gRPC authentication"]
+ 
+  is_connected boolean [default: false]
+  last_heartbeat timestamp
+  
+  os varchar
+  arch varchar [note: "amd64, arm64"]
+  total_cpu_cores int
+  total_ram_mb int
+  total_disk_gb int
+
+  active boolean [default: true]
+  
+  Note: "Represents a physical/virtual server with the Agent installed"
+}
+
+Table node_metrics {
+  id uuid [pk]
+  node_id uuid [ref: > nodes.id]
+  timestamp timestamp [not null]
+  
+  cpu_percent float
+  ram_percent float
+  ram_used_mb int
+  
+  disk_percent float
+  disk_used_mb int
+  
+  net_rx_kbps float [note: "Download (KiloBytes/sec)"]
+  net_tx_kbps float [note: "Upload (KiloBytes/sec)"]
+  
+  Indexes {
+    (node_id, timestamp) [name: "idx_metrics_time"]
+  }
+  
+  Note: "Historical data for Frontend charts"
+}
+
+Table projects {
+  id uuid [pk]
+  organization_id uuid [ref: > organizations.id]
+  name varchar [not null]
+  description text
+  updated_at timestamp [default: `now()`]
+  created_at timestamp [default: `now()`]
+}
+
+Table environments {
+  id uuid [pk]
+  project_id uuid [ref: > projects.id]
+  name varchar [note: "Production, Staging, Development"]
+  color varchar [note: "To visually distinguish environments in the UI"]
+}
+
+Table services {
+  id uuid [pk]
+  environment_id uuid [ref: > environments.id]
+  
+  node_id uuid [ref: > nodes.id, note: "Node where the service is deployed"]
+
+  name varchar [not null]
+
+  source_type source_type [default: 'git_repo']
+  
+  template_id uuid [ref: > templates.id, null]
+  
+  repository_id uuid [ref: > repositories.id, null]
+  branch varchar [default: 'main']
+  
+  build_context varchar [default: '/', note: "Build root folder"]
+  dockerfile_path varchar [default: 'Dockerfile', note: "Dockerfile filename"]
+  
+  image_tag varchar [note: "Final image tag run by the engine"]
+
+  replicas int [default: 1]
+  internal_port int [default: 80, note: "Port exposed by the container"]
+  
+  cpu_limit_mcores int
+  ram_limit_mb int
+  
+  created_at timestamp
+  updated_at timestamp
+  active boolean [default: true]
+}
+
+Table repositories {
+  id uuid [pk]
+  organization_id uuid [ref: > organizations.id, note: "Repo belongs to the Org"]
+  
+  name varchar [not null, note: "Internal name: 'Main Monorepo'"]
+  
+  provider git_provider [not null]
+  html_url varchar [note: "For UI links: https://github.com/user/repo"]
+  clone_url varchar [not null, note: "SSH or HTTPS: git@github.com..."]
+  
+  is_private boolean [default: true]
+  deploy_token varchar [note: "Encrypted. Access Token or Password"]
+  ssh_private_key varchar [note: "Encrypted. Private key generated by Podploy"]
+  
+  webhook_secret varchar [note: "To validate Push event signatures"]
+  
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table domains {
+  id uuid [pk]
+  service_id uuid [ref: > services.id]
+  
+  domain varchar [not null, note: "api.company.com"]
+  path_prefix varchar [default: "/", note: "For advanced routing"]
+  
+  ssl_enabled boolean [default: true]
+  ssl_provider varchar [default: "letsencrypt"]
+  
+  Note: "Reverse Proxy configuration (Caddy/Traefik)"]
+}
+
+Table ports {
+  id uuid [pk]
+  service_id uuid [ref: > services.id]
+  host_port int [note: "Port on the physical host"]
+  container_port int [note: "Port inside the container"]
+  
+  Note: "Direct port mapping (docker -p 80:80)"
+}
+
+Table env_vars {
+  id uuid [pk]
+  service_id uuid [ref: > services.id]
+  key varchar [not null]
+  value varchar [note: "Encrypted at rest"]
+  is_secret boolean [default: false]
+}
+
+Table volumes {
+  id uuid [pk]
+  service_id uuid [ref: > services.id]
+  host_path varchar [note: "/data/mysql"]
+  container_path varchar [note: "/var/lib/mysql"]
+  mode volume_mode [default: 'rw']
+}
+
+Table deployments {
+  id uuid [pk]
+  service_id uuid [ref: > services.id]
+  triggered_by uuid [ref: > users.id]
+  
+  status deployment_status
+  
+  started_at timestamp
+  finished_at timestamp
+  duration_seconds int
+
+  build_logs text
+
+  commit_hash varchar [note: "Commit SHA (e.g., a1b2c3d)"]
+  commit_message varchar [note: "Commit message"]
+  commit_author varchar
+
+  image_digest varchar
+  config_snapshot json [note: "Snapshot of env_vars at deployment time"]
+  
+  active boolean [default: true]
+
+  Note: "Immutable history of every released version"
+}

@@ -1,0 +1,54 @@
+run:
+  timeout: 5m
+  tests: true
+  go: '1.23'
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck      
+    - staticcheck   
+    - gosimple      
+    - ineffassign   
+    - typecheck     
+    - bodyclose     
+    - noctx         
+    - revive        
+    - gofumpt       
+    - gci
+    - misspell     
+    - unconvert     
+    - gosec
+    - gocyclo 
+
+linters-settings:
+  gofumpt:
+    extra-rules: true
+
+  gci:
+    sections:
+      - standard 
+      - default 
+      - prefix(github.com/PodPloy/podploy)
+    custom-order: true
+
+  gocyclo:
+    min-complexity: 15
+
+  gosec:
+    excludes:
+      - G104
+
+  revive:
+    rules:
+      - name: exported
+        disabled: false
+        arguments:
+          - disableStuttering: true 
+      - name: package-comments
+        disabled: true
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0

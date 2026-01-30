@@ -1,0 +1,33 @@
+commit-msg:
+  parallel: true
+  commands:
+    validate-conventional-commit:
+      run: |
+        grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?: .+$" {1}
+      errorMessage: |
+        ❌ Commit message does not follow the Conventional Commits standard.
+        
+        Required format: <type>(<optional-scope>): <subject>
+        
+        Valid examples:
+          - feat: add new docker adapter
+          - fix(agent): resolve connection timeout
+          - chore: update dependencies
+          - docs: update README
+        
+        Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.
+
+pre-commit:
+  parallel: true
+  commands:
+    lint:
+      glob: "*.go"
+      run: task lint
+
+    verify-secrets:
+      run: grep -rE "AWS_SECRET|PRIVATE_KEY" . && exit 1 || exit 0
+
+pre-push:
+  commands:
+    test:
+      run: task test
