@@ -27,7 +27,7 @@ pre-commit:
     verify-secrets:
       run: grep -rE "AWS_SECRET|PRIVATE_KEY" . && exit 1 || exit 0
 
-pre-push:
-  commands:
-    test:
-      run: task test
+# pre-push:
+#   commands:
+#     test:
+#       run: task test

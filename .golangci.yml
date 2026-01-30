@@ -1,7 +1,7 @@
 run:
   timeout: 5m
   tests: true
-  go: '1.23'
+  go: '1.25'
 
 linters:
   disable-all: true
@@ -44,7 +44,13 @@ linters-settings:
       - name: exported
         disabled: false
         arguments:
-          - disableStuttering: true 
+          - "checkPrivateReceivers"
+
+      - name: var-naming
+        disabled: false
+        arguments:
+          - ["ID", "UID", "UUID", "URL", "API", "HTTP"]
+
       - name: package-comments
         disabled: true
 
