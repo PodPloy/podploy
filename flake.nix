@@ -15,8 +15,9 @@
         buildInputs = with pkgs; [
           go
           go-task
+          lefthook
           air
-          mockery
+          go-mockery_2
           golangci-lint
           atlas
           protobuf
