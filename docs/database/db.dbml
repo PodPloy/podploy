@@ -119,10 +119,17 @@ Enum backups_status {
   failed
 }
 
-ENum instance_status {
+Enum instance_status {
   running
   stopped
   failed
+}
+
+Enum deployment_trigger {
+  manual      [note: 'User clicked Deploy']
+  git_push    [note: 'Webhook triggered']
+  rollback    [note: 'Reverting to previus version']
+  autoscaling [note: 'System scaled up/down']
 }
 
 // -----------------------------------------------------------------------------
@@ -415,6 +422,10 @@ Table services {
   restart_policy restart_policy [default: 'always']
   network_mode network_mode_type [default: 'bridge']
 
+  enable_preview_apps boolean [default: false, note: 'if true, deploy service with for PR']
+  preview_app_timeout_minutes int [default: 60, note: '0 = never pause, > 0 pause to inactivity']
+  preview_url_template varchar [default: "pr-{{pr_id}}.{{domain}}"]
+
   created_by uuid [ref: > users.id]
   updated_by uuid [ref: > users.id]
   created_at timestamp
@@ -563,19 +574,22 @@ Table domains {
 }
 
 // -----------------------------------------------------------------------------
-// DEPLOYMENTS (HISTORY)
+// DEPLOYMENTS (HISTORY & ROLLBACK SOURCE)
 // -----------------------------------------------------------------------------
 
 Table deployments {
   id uuid [pk]
   service_id uuid [ref: > services.id]
-  triggered_by uuid [ref: > users.id]
+  triggered_by uuid [ref: > users.id, null, note: 'Null if system/autoscaler']
 
   status deployment_status
+  trigger_mode deployment_trigger [default: 'manual']
 
   started_at timestamp
   finished_at timestamp
   duration_seconds int
+
+  rollback_of_id uuid [ref: > deployments.id, null]
 
   build_logs text
 
@@ -592,7 +606,7 @@ Table deployments {
 
   Indexes {
     (service_id, created_at ) [name: "idx_deployments_recent", note: "created_at DESC"]
-    (status, finished_at)     [note: "where finished_at IS NULL"]
+    (status)
   }
 
   Note: "Immutable history of every released version"
