@@ -2,801 +2,1061 @@
 // ENUMS
 // -----------------------------------------------------------------------------
 
+
 Enum backup_type {
-  volume
-  database_dump
-  config_only
+ volume
+ database_dump
+ config_only
 }
+
+
+Enum ssl_status {
+ pending   [note: "Waiting for DNS propagation"]
+ active    [note: "Certificate issued and valid"]
+ failed    [note: "Let's Encrypt failed (Rate limit or DNS error)"]
+}
+
 
 Enum restore_backups_events_status {
-  pending
-  in_progress
-  completed
-  failed
+ pending
+ in_progress
+ completed
+ failed
 }
+
 
 Enum service_type {
-  application   [note: "Standard web service (Node, Go, Python)"]
-  database      [note: "Managed database"]
-  worker        [note: "Background process without exposed port"]
-  job           [note: "Cronjob or scheduled task"]
+ application   [note: "Standard web service (Node, Go, Python)"]
+ database      [note: "Managed database"]
+ worker        [note: "Background process without exposed port"]
+ job           [note: "Cronjob or scheduled task"]
 }
+
 
 Enum schedule_type {
-  cron        [note: "Cron expression (e.g., '0 2 * * *')"]
-  daily       [note: "Every day at a specific time"]
-  weekly      [note: "Once a week on a specific day"]
-  monthly     [note: "Once a month on a specific date"]
+ cron        [note: "Cron expression (e.g., '0 2 * * *')"]
+ daily       [note: "Every day at a specific time"]
+ weekly      [note: "Once a week on a specific day"]
+ monthly     [note: "Once a month on a specific date"]
 }
+
 
 Enum autoscaling_metric {
-  cpu_usage     [note: "Scale based on CPU utilization"]
-  ram_usage     [note: "Scale based on RAM utilization"]
+ cpu_usage     [note: "Scale based on CPU utilization"]
+ ram_usage     [note: "Scale based on RAM utilization"]
 }
+
 
 Enum deployment_status {
-  healthy       [note: "Running correctly"]
-  unhealthy     [note: "Healthcheck failed"]
-  failed        [note: "Build or startup error"]
-  stopped       [note: "Manually stopped"]
+ healthy       [note: "Running correctly"]
+ unhealthy     [note: "Healthcheck failed"]
+ failed        [note: "Build or startup error"]
+ stopped       [note: "Manually stopped"]
 }
+
 
 Enum restart_policy {
-  no             [note: "Do not restart automatically"]
-  on_failure     [note: "Restart only on failure"]
-  always         [note: "Always restart the container"]
-  unless_stopped [note: "Restart unless manually stopped"]
+ no             [note: "Do not restart automatically"]
+ on_failure     [note: "Restart only on failure"]
+ always         [note: "Always restart the container"]
+ unless_stopped [note: "Restart unless manually stopped"]
 }
+
 
 Enum service_status {
-  running
-  stopped
-  deploying
-  failed
+ running
+ stopped
+ deploying
+ failed
 }
+
 
 Enum volume_mode {
-  rw            [note: "Read and Write"]
-  ro            [note: "Read Only"]
+ rw            [note: "Read and Write"]
+ ro            [note: "Read Only"]
 }
+
 
 Enum network_mode_type {
-  bridge
-  host
-  none
+ bridge
+ host
+ none
 }
+
 
 Enum git_provider {
-  github
-  gitlab
-  bitbucket
-  custom_git [note: "Any generic Git server (Gitea, Bare Metal)"]
+ github
+ gitlab
+ bitbucket
+ custom_git [note: "Any generic Git server (Gitea, Bare Metal)"]
 }
+
 
 Enum template_source {
-  registry_image  [note: "Public or private image (Docker Hub, GHCR)"]
-  repo_file       [note: "A file (Dockerfile/Containerfile) in YOUR central repository"]
+ registry_image  [note: "Public or private image (Docker Hub, GHCR)"]
+ repo_file       [note: "A file (Dockerfile/Containerfile) in YOUR central repository"]
 }
+
 
 Enum source_type {
-  marketplace   [note: "From Template"]
-  git_repo      [note: "From Source Code"]
+ marketplace   [note: "From Template"]
+ git_repo      [note: "From Source Code"]
 }
+
 
 Enum engine_compatibility {
-  any             [note: "Works on both Docker and Podman"]
-  docker_only
-  podman_only
+ any             [note: "Works on both Docker and Podman"]
+ docker_only
+ podman_only
 }
+
 
 Enum node_status {
-  synced          [note: "Online and up to date"]
-  out_of_sync     [note: "Online but config differs"]
-  disconnected    [note: "Agent not responding"]
+ synced          [note: "Online and up to date"]
+ out_of_sync     [note: "Online but config differs"]
+ disconnected    [note: "Agent not responding"]
 }
+
 
 Enum audit_action {
-  CREATE
-  UPDATE
-  DELETE
-  DEPLOY
-  RESTART
-  LOGIN
-  ROLLBACK
+ CREATE
+ UPDATE
+ DELETE
+ DEPLOY
+ RESTART
+ LOGIN
+ ROLLBACK
 }
+
 
 Enum user_role {
-  OWNER           [note: "Full access + Billing Mgmt"]
-  ADMIN           [note: "Full access + User Mgmt"]
-  INFRASTRUCTURE  [note: "Manage Nodes, Networks, but NOT Users"]
-  DEVELOPER       [note: "Manage Services, Deployments"]
-  VIEWER          [note: "Read-only access and logs"]
+ OWNER           [note: "Full access + Billing Mgmt"]
+ ADMIN           [note: "Full access + User Mgmt"]
+ INFRASTRUCTURE  [note: "Manage Nodes, Networks, but NOT Users"]
+ DEVELOPER       [note: "Manage Services, Deployments"]
+ VIEWER          [note: "Read-only access and logs"]
 }
+
 
 Enum backups_status {
-  in_progress
-  completed
-  failed
+ in_progress
+ completed
+ failed
 }
+
 
 Enum instance_status {
-  running
-  stopped
-  failed
+ running
+ stopped
+ failed
 }
 
+
 Enum deployment_trigger {
-  manual      [note: 'User clicked Deploy']
-  git_push    [note: 'Webhook triggered']
-  rollback    [note: 'Reverting to previus version']
-  autoscaling [note: 'System scaled up/down']
+ manual      [note: 'User clicked Deploy']
+ git_push    [note: 'Webhook triggered']
+ rollback    [note: 'Reverting to previus version']
+ autoscaling [note: 'System scaled up/down']
 }
+
 
 // -----------------------------------------------------------------------------
 // IDENTITY & ACCESS (RBAC)
 // -----------------------------------------------------------------------------
 
+
 Table users {
-  id uuid [pk]
+ id uuid [pk]
 
-  email varchar [unique, not null]
-  password_hash varchar [not null]
-  full_name varchar
 
-  created_at timestamp [default: `now()`]
-  updated_at timestamp [default: `now()`]
-  created_by uuid [ref: > users.id]
-  updated_by uuid [ref: > users.id]
+ email varchar [unique, not null]
+ password_hash varchar [not null]
+ full_name varchar
 
-  active boolean [default: true]
+
+ created_at timestamp [default: `now()`]
+ updated_at timestamp [default: `now()`]
+ created_by uuid [ref: > users.id]
+ updated_by uuid [ref: > users.id]
+
+
+ active boolean [default: true]
 }
+
 
 Table organizations {
-  id uuid [pk]
-  name varchar [not null]
-  slug varchar [unique, note: "For SEO-friendly URLs"]
+ id uuid [pk]
+ name varchar [not null]
+ slug varchar [unique, note: "For SEO-friendly URLs"]
 
-  created_at timestamp [default: `now()`]
-  updated_at timestamp [default: `now()`]
-  created_by uuid [ref: > users.id]
-  updated_by uuid [ref: > users.id]
-  active boolean [default: true]
 
-  Note: "The main tenant. Everything belongs to an Org."
+ created_at timestamp [default: `now()`]
+ updated_at timestamp [default: `now()`]
+ created_by uuid [ref: > users.id]
+ updated_by uuid [ref: > users.id]
+ active boolean [default: true]
+
+
+ Note: "The main tenant. Everything belongs to an Org."
 }
 
-Table organization_members {
-  organization_id uuid [ref: > organizations.id]
-  user_id uuid [ref: > users.id]
-  role user_role [default: 'DEVELOPER']
-  joined_at timestamp [default: `now()`]
-
-  Indexes {
-    (organization_id, user_id) [pk]
-  }
-}
 
 // -----------------------------------------------------------------------------
 // INFRASTRUCTURE (NODES & AGENTS)
 // -----------------------------------------------------------------------------
 
+
 Table nodes {
-  id uuid [pk]
-  organization_id uuid [ref: > organizations.id]
+ id uuid [pk]
+ organization_id uuid [ref: > organizations.id]
 
-  name varchar [not null, note: "ex: 'local-server' or 'aws-vps-1'"]
-  hostname varchar [note: "Domain to reach the Agent"]
-  ip_address varchar [note: "IP detected during handshake"]
-  port int [default: 50051, note: "gRPC Port"]
 
-  // Security (mTLS)
-  public_key text [not null, note: "Agent's Public Key for Auth verification"]
-  enrollment_token varchar [note: "Used only during initial registration"]
+ name varchar [not null, note: "ex: 'local-server' or 'aws-vps-1'"]
+ hostname varchar [note: "Domain to reach the Agent"]
+ ip_address varchar [note: "IP detected during handshake"]
+ port int [default: 50051, note: "gRPC Port"]
 
-  // State
-  status node_status [default: 'disconnected']
-  last_heartbeat timestamp
-  version varchar [note: "Agent version (e.g. v0.1.2)"]
 
-  // Specs (Capacity Planning)
-  os varchar
-  arch varchar
-  podman_version varchar
-  docker_version varchar
-  supports_podman boolean
-  supports_docker boolean
-  support_rootless boolean [note: "Can run Docker in rootless mode"]
-  support_systemd boolean [note: "Can manage services via systemd"]
-  total_cpu_cores int
-  total_ram_mb int
-  total_disk_gb int
-  podman_storage_driver varchar [note: "overlay, vfs, etc."]
-  cni_plugins_installed text[] [note: "List of CNI plugins installed"]
-  podman_network_driver varchar [note: "bridge, macvlan, etc."]
-  graph_driver varchar [note: "overlay2, devicemapper, etc."]
+ // Security (mTLS)
+ public_key text [not null, note: "Agent's Public Key for Auth verification"]
+ enrollment_token varchar [note: "Used only during initial registration"]
 
-  active boolean [default: true]
-  created_at timestamp [default: `now()`]
-  updated_at timestamp [default: `now()`]
-  created_by uuid [ref: > users.id]
-  updated_by uuid [ref: > users.id]
 
-  note: "Physical or Virtual Machine managed by an Agent"
+ // State
+ status node_status [default: 'disconnected']
+ last_heartbeat timestamp
+ version varchar [note: "Agent version (e.g. v0.1.2)"]
+
+
+ // Specs (Capacity Planning)
+ os varchar
+ arch varchar
+ podman_version varchar
+ docker_version varchar
+ supports_podman boolean
+ supports_docker boolean
+ support_rootless boolean [note: "Can run Docker in rootless mode"]
+ support_systemd boolean [note: "Can manage services via systemd"]
+ total_cpu_cores int
+ total_ram_mb int
+ total_disk_gb int
+ podman_storage_driver varchar [note: "overlay, vfs, etc."]
+ cni_plugins_installed text[] [note: "List of CNI plugins installed"]
+ podman_network_driver varchar [note: "bridge, macvlan, etc."]
+ graph_driver varchar [note: "overlay2, devicemapper, etc."]
+
+
+ wireguard_public_key varchar
+ mesh_ip_address varchar [note: "10.x.x.x internal IP"]
+ is_dedicated boolean [default: false, note: 'if true only use for one service']
+
+
+ active boolean [default: true]
+ created_at timestamp [default: `now()`]
+ updated_at timestamp [default: `now()`]
+ created_by uuid [ref: > users.id]
+ updated_by uuid [ref: > users.id]
+
+
+ note: "Physical or Virtual Machine managed by an Agent"
 }
+
 
 Table node_metrics {
-  id uuid [pk]
-  node_id uuid [ref: > nodes.id]
-  timestamp timestamp [not null]
+ id uuid [pk]
+ node_id uuid [ref: > nodes.id]
+ timestamp timestamp [not null]
 
-  cpu_percent float
-  ram_percent float
-  ram_used_mb int
 
-  disk_percent float
-  disk_used_mb int
+ cpu_percent float
+ ram_percent float
+ ram_used_mb int
 
-  net_rx_kbps float [note: "Download (KiloBytes/sec)"]
-  net_tx_kbps float [note: "Upload (KiloBytes/sec)"]
 
-  Indexes {
-    (node_id, timestamp) [name: "idx_metrics_time", note: "timestamp DESC"]
-    (timestamp)          [name: "idx_metrics_timestamp", note: "where timestamp > now() - interval '90 days'"]
-  }
+ disk_percent float
+ disk_used_mb int
 
-  Note: "Historical data for Frontend charts"
+
+ net_rx_kbps float [note: "Download (KiloBytes/sec)"]
+ net_tx_kbps float [note: "Upload (KiloBytes/sec)"]
+
+
+ Indexes {
+   (node_id, timestamp) [name: "idx_metrics_time", note: "timestamp DESC"]
+   (timestamp)          [name: "idx_metrics_timestamp", note: "where timestamp > now() - interval '90 days'"]
+ }
+
+
+ Note: "Historical data for Frontend charts"
 }
+
 
 // -----------------------------------------------------------------------------
 // AUDIT LOGS (COMPLIANCE)
 // -----------------------------------------------------------------------------
 
+
 Table audit_logs {
-  id uuid [pk]
-  organization_id uuid [ref: > organizations.id]
-  user_id uuid [ref: > users.id, null, note: "Null if System Action"]
+ id uuid [pk]
+ organization_id uuid [ref: > organizations.id]
+ user_id uuid [ref: > users.id, null, note: "Null if System Action"]
 
-  action audit_action [not null]
-  resource_type varchar [note: "Ex: 'SERVICE', 'NODE'"]
-  resource_id varchar [note: "UUID of the affected resource"]
 
-  metadata json [note: "Diff or details. Ex: {old_cpu: 1, new_cpu: 2}"]
+ action audit_action [not null]
+ resource_type varchar [note: "Ex: 'SERVICE', 'NODE'"]
+ resource_id varchar [note: "UUID of the affected resource"]
 
-  ip_address varchar
-  user_agent varchar
-  created_at timestamp [default: `now()`]
 
-  Indexes {
-    (organization_id, created_at) [name: "idx_audit_org_time", note: "created_at DESC"]
-    (resource_type, resource_id)
-  }
+ metadata json [note: "Diff or details. Ex: {old_cpu: 1, new_cpu: 2}"]
 
-  note: "Immutable log of all significant actions for compliance"
+
+ ip_address varchar
+ user_agent varchar
+ created_at timestamp [default: `now()`]
+
+
+ Indexes {
+   (organization_id, created_at) [name: "idx_audit_org_time", note: "created_at DESC"]
+   (resource_type, resource_id)
+ }
+
+
+ note: "Immutable log of all significant actions for compliance"
 }
+
 
 // -----------------------------------------------------------------------------
 // PROJECTS & APPLICATIONS
 // -----------------------------------------------------------------------------
 
+
 Table projects {
-  id uuid [pk]
-  organization_id uuid [ref: > organizations.id]
-  name varchar [not null]
-  description text
-  updated_at timestamp [default: `now()`]
-  created_at timestamp [default: `now()`]
-  created_by uuid [ref: > users.id]
-  updated_by uuid [ref: > users.id]
+ id uuid [pk]
+ organization_id uuid [ref: > organizations.id]
+ name varchar [not null]
+ description text
+ updated_at timestamp [default: `now()`]
+ created_at timestamp [default: `now()`]
+ created_by uuid [ref: > users.id]
+ updated_by uuid [ref: > users.id]
 }
 
+
 Table environments {
-  id uuid [pk]
-  project_id uuid [ref: > projects.id]
-  name varchar [note: "Production, Staging, Development"]
-  color varchar [note: "To visually distinguish environments in the UI"]
+ id uuid [pk]
+ project_id uuid [ref: > projects.id]
+ name varchar [note: "Production, Staging, Development"]
+ color varchar [note: "To visually distinguish environments in the UI"]
 }
+
 
 // -----------------------------------------------------------------------------
 // REPOSITORIES & TEMPLATES
 // -----------------------------------------------------------------------------
 
+
 Table repositories {
-  id uuid [pk]
-  organization_id uuid [ref: > organizations.id, note: "Repo belongs to the Org"]
+ id uuid [pk]
+ organization_id uuid [ref: > organizations.id, note: "Repo belongs to the Org"]
 
-  name varchar [not null, note: "Internal name: 'Main Monorepo'"]
 
-  provider git_provider [not null]
-  html_url varchar [note: "For UI links: https://github.com/user/repo"]
-  clone_url varchar [not null, note: "SSH or HTTPS: git@github.com..."]
+ name varchar [not null, note: "Internal name: 'Main Monorepo'"]
 
-  is_private boolean [default: true]
-  deploy_token varchar [note: "Encrypted. Access Token or Password"]
-  ssh_private_key varchar [note: "Encrypted. Private key generated by Podploy"]
 
-  webhook_secret varchar [note: "To validate Push event signatures"]
+ provider git_provider [not null]
+ html_url varchar [note: "For UI links: https://github.com/user/repo"]
+ clone_url varchar [not null, note: "SSH or HTTPS: git@github.com..."]
 
-  auto_deploy boolean [default: true, note: "Deploy on new commits to master branch"]
-  auto_deploy_branches varchar[] [note: "Branches that trigger auto-deploy"]
-  pre_deploy_script varchar [note: "Optional script to run before deployments"]
-  post_deploy_script varchar [note: "Optional script to run after deployments"]
 
-  required_approval boolean [default: false, note: "Require approval for PR merges"]
-  required_approvers int [default: 0, note: "Number of unique approvers required"]
+ is_private boolean [default: true]
+ deploy_token varchar [note: "Encrypted. Access Token or Password"]
+ ssh_private_key varchar [note: "Encrypted. Private key generated by Podploy"]
 
-  created_at timestamp
-  updated_at timestamp
-  created_by uuid [ref: > users.id]
-  updated_by uuid [ref: > users.id]
+
+ webhook_secret varchar [note: "To validate Push event signatures"]
+
+
+ auto_deploy boolean [default: true, note: "Deploy on new commits to master branch"]
+ auto_deploy_branches varchar[] [note: "Branches that trigger auto-deploy"]
+ pre_deploy_script varchar [note: "Optional script to run before deployments"]
+ post_deploy_script varchar [note: "Optional script to run after deployments"]
+
+
+ required_approval boolean [default: false, note: "Require approval for PR merges"]
+ required_approvers int [default: 0, note: "Number of unique approvers required"]
+
+
+ created_at timestamp
+ updated_at timestamp
+ created_by uuid [ref: > users.id]
+ updated_by uuid [ref: > users.id]
 }
+
 
 Table webhook_events {
-  id uuid [pk]
-  repository_id uuid [ref: > repositories.id]
+ id uuid [pk]
+ repository_id uuid [ref: > repositories.id]
 
-  event_type varchar [note: "push, pull_request, tag_push"]
-  payload json [note: "Raw JSON payload from the Git provider"]
-  received_at timestamp [default: `now()`]
 
-  processed boolean [default: false]
-  processed_at timestamp
-  error_message varchar
+ event_type varchar [note: "push, pull_request, tag_push"]
+ payload json [note: "Raw JSON payload from the Git provider"]
+ received_at timestamp [default: `now()`]
 
-  created_at timestamp [default: `now()`]
 
-  Indexes {
-    (repository_id, event_type) [name: "idx_repo_event"]
-    (created_at)                [name: "idx_webhook_created"]
-  }
+ processed boolean [default: false]
+ processed_at timestamp
+ error_message varchar
 
-  note: "Stores incoming webhook events for processing"
+
+ created_at timestamp [default: `now()`]
+
+
+ Indexes {
+   (repository_id, event_type) [name: "idx_repo_event"]
+   (created_at)                [name: "idx_webhook_created"]
+ }
+
+
+ note: "Stores incoming webhook events for processing"
 }
+
 
 Table deployment_approvals {
-  id uuid [pk]
-  deployment_id uuid [ref: > deployments.id]
-  user_id uuid [ref: > users.id]
+ id uuid [pk]
+ deployment_id uuid [ref: > deployments.id]
+ user_id uuid [ref: > users.id]
 
-  approved boolean
-  comment text
-  approved_at timestamp [default: `now()`]
 
-  Indexes {
-    (deployment_id, user_id) [unique]
-  }
+ approved boolean
+ comment text
+ approved_at timestamp [default: `now()`]
 
-  note: "Tracks user approvals for deployments"
+
+ Indexes {
+   (deployment_id, user_id) [unique]
+ }
+
+
+ note: "Tracks user approvals for deployments"
 }
+
 
 Table templates {
-  id uuid [pk]
+ id uuid [pk]
 
-  name varchar [not null, note: "Ex: 'PostgreSQL', 'Redis'"]
-  logo_url varchar
-  category varchar
-  description text
-  architectures varchar[] [note: "Supported architectures: ['amd64', 'arm64']"]
-  maintainer varchar [note: "Template author or organization"]
-  code_url varchar [note: "Link to source code or documentation"]
-  documentation_url varchar
-  popularity_score int [default: 0, note: "Based on usage statistics"]
-  tags varchar[] [note: "E.g., ['database', 'sql', 'storage']"]
-  featured boolean [default: false]
-  include_database boolean [default: false, note: "Whether it includes a database"]
 
-  version varchar [default: "latest"]
-  min_agent_version varchar [note: "Minimum Agent version required"]
-  recommended_resources json [note: "{cpu_cores: 1, ram_mb: 512}"]
+ name varchar [not null, note: "Ex: 'PostgreSQL', 'Redis'"]
+ logo_url varchar
+ category varchar
+ description text
+ architectures varchar[] [note: "Supported architectures: ['amd64', 'arm64']"]
+ maintainer varchar [note: "Template author or organization"]
+ code_url varchar [note: "Link to source code or documentation"]
+ documentation_url varchar
+ popularity_score int [default: 0, note: "Based on usage statistics"]
+ tags varchar[] [note: "E.g., ['database', 'sql', 'storage']"]
+ featured boolean [default: false]
+ include_database boolean [default: false, note: "Whether it includes a database"]
 
-  default_health_check json [note: "{type: 'tcp', port: 5432}"]
-  default_volumes json [note: "[{host_path: '/data', container_path: '/var/lib/postgresql/data'}]"]
-  exposed_ports int[] [note: "[5432, 5433]"]
 
-  image_name varchar [not null, note: "postgres:16-alpine"]
+ version varchar [default: "latest"]
+ min_agent_version varchar [note: "Minimum Agent version required"]
+ recommended_resources json [note: "{cpu_cores: 1, ram_mb: 512}"]
 
-  engine_compatibility engine_compatibility [default: 'any']
 
-  default_ports json [note: "[{host_port: 5432, container_port: 5432}]"]
-  default_env_vars json [note: "{'POSTGRES_PASSWORD': 'example'}"]
+ default_health_check json [note: "{type: 'tcp', port: 5432}"]
+ default_volumes json [note: "[{host_path: '/data', container_path: '/var/lib/postgresql/data'}]"]
+ exposed_ports int[] [note: "[5432, 5433]"]
 
-  active boolean [default: true]
+
+ image_name varchar [not null, note: "postgres:16-alpine"]
+
+
+ engine_compatibility engine_compatibility [default: 'any']
+
+
+ default_ports json [note: "[{host_port: 5432, container_port: 5432}]"]
+ default_env_vars json [note: "{'POSTGRES_PASSWORD': 'example'}"]
+
+
+ active boolean [default: true]
 }
+
 
 // -----------------------------------------------------------------------------
 // SERVICES (THE WORKLOAD)
 // -----------------------------------------------------------------------------
 
+
 Table services {
-  id uuid [pk]
-  environment_id uuid [ref: > environments.id]
+ id uuid [pk]
+ environment_id uuid [ref: > environments.id]
 
-  // Binding to Infrastructure
-  project_id uuid [ref: > projects.id]
-  node_id uuid [ref: > nodes.id, null, note: "Direct binding for Docker/Podman mode"]
-  status service_status [default: 'stopped']
 
-  name varchar [not null]
-  description text
-  service_type service_type [default: 'application']
+ // Binding to Infrastructure
+ project_id uuid [ref: > projects.id]
+ node_id uuid [ref: > nodes.id, null, note: "Direct binding for Docker/Podman mode"]
+ status service_status [default: 'stopped']
 
-  restart_policy restart_policy [default: 'always']
-  network_mode network_mode_type [default: 'bridge']
 
-  enable_preview_apps boolean [default: false, note: 'if true, deploy service with for PR']
-  preview_app_timeout_minutes int [default: 60, note: '0 = never pause, > 0 pause to inactivity']
-  preview_url_template varchar [default: "pr-{{pr_id}}.{{domain}}"]
+ name varchar [not null]
+ description text
+ service_type service_type [default: 'application']
 
-  created_by uuid [ref: > users.id]
-  updated_by uuid [ref: > users.id]
-  created_at timestamp
-  updated_at timestamp
 
-  Indexes {
-    (environment_id, status) [name: "idx_env_status"]
-    (node_id)                [note: "where node_id IS NOT NULL"]
-  }
+ restart_policy restart_policy [default: 'always']
+ network_mode network_mode_type [default: 'bridge']
+
+
+ enable_preview_apps boolean [default: false, note: 'if true, deploy service with for PR']
+ preview_app_timeout_minutes int [default: 60, note: '0 = never pause, > 0 pause to inactivity']
+ preview_url_template varchar [default: "pr-{{pr_id}}.{{domain}}"]
+
+
+ created_by uuid [ref: > users.id]
+ updated_by uuid [ref: > users.id]
+ created_at timestamp
+ updated_at timestamp
+
+
+ Indexes {
+   (environment_id, status) [name: "idx_env_status"]
+   (node_id)                [note: "where node_id IS NOT NULL"]
+ }
 }
+
 
 Table service_containers {
-  id uuid [pk]
-  service_id uuid [ref: > services.id, note: "Include in pod"]
+ id uuid [pk]
+ service_id uuid [ref: > services.id, note: "Include in pod"]
 
-  name varchar [not null]
 
-  source_type source_type [default: 'git_repo']
+ name varchar [not null]
 
-  repository_id uuid [ref: > repositories.id, null]
-  branch varchar [default: 'master']
-  build_context varchar [default: '/']
-  build_path varchar [default: 'Containerfile']
 
-  command varchar [note: 'Override CMD']
-  args varchar [note: 'Override ENTRYPOINT args']
-  working_dir varchar
+ source_type source_type [default: 'git_repo']
 
-  cpu_limit float
-  ram_limit_mb int
 
-  is_init_container boolean [default: false, note: 'Run and die before to rest run']
-  depends_on varchar
+ template_id uuid [ref: > templates.id]
 
-  created_by uuid [ref: > users.id]
-  updated_by uuid [ref: > users.id]
-  created_at timestamp
-  updated_at timestamp
 
-  Indexes {
-    (service_id, name) [unique]
-  }
+ repository_id uuid [ref: > repositories.id, null]
+ branch varchar [default: 'master']
+ build_context varchar [default: '/']
+ build_path varchar [default: 'Containerfile']
+
+
+ command varchar [note: 'Override CMD']
+ args varchar [note: 'Override ENTRYPOINT args']
+ working_dir varchar
+
+
+ cpu_limit float
+ ram_limit_mb int
+
+
+ is_init_container boolean [default: false, note: 'Run and die before to rest run']
+ depends_on varchar
+
+
+ created_by uuid [ref: > users.id]
+ updated_by uuid [ref: > users.id]
+ created_at timestamp
+ updated_at timestamp
+
+
+ Indexes {
+   (service_id, name) [unique]
+ }
 }
+
 
 Table service_instances {
-  id uuid [pk]
-  service_id uuid [ref: > services.id]
-  node_id uuid [ref: > nodes.id]
-  container_id varchar [note: "Docker/Podman Container ID"]
+ id uuid [pk]
+ service_id uuid [ref: > services.id]
+ node_id uuid [ref: > nodes.id]
+ container_id varchar [note: "Docker/Podman Container ID"]
 
-  status instance_status [default: 'stopped']
-  started_at timestamp
-  stopped_at timestamp
-  restart_count int [default: 0]
 
-  created_by uuid [ref: > users.id]
-  created_at timestamp
-  updated_at timestamp
-  updated_by uuid [ref: > users.id]
+ status instance_status [default: 'stopped']
+ started_at timestamp
+ stopped_at timestamp
+ restart_count int [default: 0]
+
+
+ created_by uuid [ref: > users.id]
+ created_at timestamp
+ updated_at timestamp
+ updated_by uuid [ref: > users.id]
 }
+
 
 Table health_checks {
-  id uuid [pk]
-  service_id uuid [ref: > services.id]
+ id uuid [pk]
+ service_id uuid [ref: > services.id]
 
-  type varchar [note: "http, tcp, command"]
-  endpoint varchar [note: "/health para http"]
-  command varchar [note: "Shell command for 'command' type"]
 
-  interval_seconds int [default: 30]
-  timeout_seconds int [default: 5]
-  retries int [default: 3]
-  initial_delay_seconds int [default: 10]
+ type varchar [note: "http, tcp, command"]
+ endpoint varchar [note: "/health para http"]
+ command varchar [note: "Shell command for 'command' type"]
+
+
+ interval_seconds int [default: 30]
+ timeout_seconds int [default: 5]
+ retries int [default: 3]
+ initial_delay_seconds int [default: 10]
 }
+
 
 Table env_vars {
-  id uuid [pk]
-  container_id uuid [ref: > services.id]
+ id uuid [pk]
+ container_id uuid [ref: > services.id]
 
-  key varchar [not null]
-  value varchar [note: "Encrypted if is_secret=true"]
-  is_secret boolean [default: false]
 
-  created_by uuid [ref: > users.id]
-  updated_by uuid [ref: > users.id]
-  created_at timestamp
-  updated_at timestamp
+ key varchar [not null]
+ value varchar [note: "ENCRYPTED with XChaCha20 if is_secret=true"]
+ is_secret boolean [default: false]
 
-  Indexes {
-    (service_id, key) [unique]
-  }
 
-  Note: "Environment variables for service containers"
+ created_by uuid [ref: > users.id]
+ updated_by uuid [ref: > users.id]
+ created_at timestamp
+ updated_at timestamp
+
+
+ Indexes {
+   (container_id, key) [unique]
+ }
+
+
+ Note: "Environment variables for service containers"
 }
+
 
 Table volumes {
-  id uuid [pk]
-  container_id uuid [ref: > services_containers.id]
+ id uuid [pk]
+ container_id uuid [ref: > service_containers.id]
 
-  host_path varchar [note: "Path on the Node"]
-  container_path varchar [note: "Path inside Container"]
 
-  mode volume_mode [default: 'rw']
-  size_mb int
-  backup_enabled boolean [default: true]
+ host_path varchar [note: "Path on the Node"]
+ container_path varchar [note: "Path inside Container"]
 
-  created_by uuid [ref: > users.id]
-  updated_by uuid [ref: > users.id]
-  created_at timestamp
-  updated_at timestamp
 
-  Note: "Bind mount or Volume for persistent storage"
+ mode volume_mode [default: 'rw']
+ size_mb int
+ backup_enabled boolean [default: true]
+
+
+ created_by uuid [ref: > users.id]
+ updated_by uuid [ref: > users.id]
+ created_at timestamp
+ updated_at timestamp
+
+
+ Note: "Bind mount or Volume for persistent storage"
 }
+
 
 Table ports {
-  id uuid [pk]
-  service_id uuid [ref: > services.id]
+ id uuid [pk]
+ service_id uuid [ref: > services.id]
 
-  host_port int [note: "Port on the physical host"]
-  container_port int [note: "Port inside the container"]
 
-  created_by uuid [ref: > users.id]
-  updated_by uuid [ref: > users.id]
-  created_at timestamp
-  updated_at timestamp
+ host_port int [note: "Port on the physical host"]
+ container_port int [note: "Port inside the container"]
 
-  Note: "Direct port mapping (docker -p 80:80)"
+
+ created_by uuid [ref: > users.id]
+ updated_by uuid [ref: > users.id]
+ created_at timestamp
+ updated_at timestamp
+
+
+ Note: "Direct port mapping (podman/docker 80:80)"
 }
+
 
 Table domains {
-  id uuid [pk]
-  service_id uuid [ref: > services.id]
+ id uuid [pk]
+ service_id uuid [ref: > services.id]
 
-  domain varchar [not null, note: "api.company.com"]
-  path_prefix varchar [default: "/", note: "For advanced routing"]
 
-  ssl_enabled boolean [default: true]
-  ssl_provider varchar [default: "letsencrypt"]
+ name varchar [not null, note: "api.company.com or *.company.com or company.com"]
+ path_prefix varchar [default: "/", note: "For advanced routing"]
+ target_port int [null, note: 'if null use service port']
 
-  created_by uuid [ref: > users.id]
-  updated_by uuid [ref: > users.id]
-  created_at timestamp
-  updated_at timestamp
 
-  Note: "Reverse Proxy configuration (Caddy/Traefik)"
+ is_primary boolean [default: false]
+ ssl_status ssl_status [default: 'pending']
+ ssl_enabled boolean [default: true]
+ ssl_provider varchar [default: "letsencrypt"]
+ ssl_error_message text [null]
+
+
+ dns_verified boolean [default: false]
+ dns_checked_at timestamp
+
+
+ created_by uuid [ref: > users.id]
+ updated_by uuid [ref: > users.id]
+ created_at timestamp
+ updated_at timestamp
+
+
+ Note: "Reverse Proxy configuration (Caddy)"
 }
+
 
 // -----------------------------------------------------------------------------
 // DEPLOYMENTS (HISTORY & ROLLBACK SOURCE)
 // -----------------------------------------------------------------------------
 
+
 Table deployments {
-  id uuid [pk]
-  service_id uuid [ref: > services.id]
-  triggered_by uuid [ref: > users.id, null, note: 'Null if system/autoscaler']
+ id uuid [pk]
+ service_id uuid [ref: > services.id]
+ triggered_by uuid [ref: > users.id, null, note: 'Null if system/autoscaler']
 
-  status deployment_status
-  trigger_mode deployment_trigger [default: 'manual']
 
-  started_at timestamp
-  finished_at timestamp
-  duration_seconds int
+ status deployment_status
+ trigger_mode deployment_trigger [default: 'manual']
 
-  rollback_of_id uuid [ref: > deployments.id, null]
 
-  build_logs text
+ started_at timestamp
+ finished_at timestamp
+ duration_seconds int
 
-  commit_hash varchar [note: "Commit SHA (e.g., a1b2c3d)"]
-  commit_message varchar [note: "Commit message"]
-  commit_author varchar
 
-  image_digest varchar
-  config_snapshot json [note: "Snapshot of env_vars at deployment time"]
+ rollback_of_id uuid [ref: > deployments.id, null]
 
-  active boolean [default: true]
-  created_at timestamp [default: `now()`]
-  created_by uuid [ref: > users.id]
 
-  Indexes {
-    (service_id, created_at ) [name: "idx_deployments_recent", note: "created_at DESC"]
-    (status)
-  }
+ build_logs text
 
-  Note: "Immutable history of every released version"
+
+ commit_hash varchar [note: "Commit SHA (e.g., a1b2c3d)"]
+ commit_message varchar [note: "Commit message"]
+ commit_author varchar
+
+
+ image_digest varchar
+ config_snapshot json [note: "Snapshot of env_vars at deployment time"]
+
+
+ active boolean [default: true]
+ created_at timestamp [default: `now()`]
+ created_by uuid [ref: > users.id]
+
+
+ Indexes {
+   (service_id, created_at ) [name: "idx_deployments_recent", note: "created_at DESC"]
+   (status)
+ }
+
+
+ Note: "Immutable history of every released version"
 }
+
 
 // -----------------------------------------------------------------------------
 // NETWORKING (SERVICE DISCOVERY)
 // -----------------------------------------------------------------------------
 
+
 Table networks {
-  id uuid [pk]
-  organization_id uuid [ref: > organizations.id]
-  name varchar [note: "bridge, overlay, custom"]
-  driver varchar [default: "bridge"]
-  subnet varchar
-  is_public boolean [default: false]
+ id uuid [pk]
+ organization_id uuid [ref: > organizations.id]
+ name varchar [note: "bridge, overlay, custom"]
+ driver varchar [default: "bridge"]
+ subnet varchar
+ is_public boolean [default: false]
 
-  created_at timestamp [default: `now()`]
-  created_by uuid [ref: > users.id]
-  updated_at timestamp [default: `now()`]
-  updated_by uuid [ref: > users.id]
 
-  Note: "Virtual networks for service communication"
+ created_at timestamp [default: `now()`]
+ created_by uuid [ref: > users.id]
+ updated_at timestamp [default: `now()`]
+ updated_by uuid [ref: > users.id]
+
+
+ Note: "Virtual networks for service communication"
 }
+
 
 Table service_networks {
-  service_id uuid [ref: > services.id]
-  network_id uuid [ref: > networks.id]
-  aliases varchar[] [note: "DNS aliases dentro de la red"]
+ service_id uuid [ref: > services.id]
+ network_id uuid [ref: > networks.id]
+ aliases varchar[] [note: "DNS aliases dentro de la red"]
 
-  Indexes {
-    (service_id, network_id) [pk]
-  }
 
-  Note: "Many-to-Many relationship between Services and Networks"
+ Indexes {
+   (service_id, network_id) [pk]
+ }
+
+
+ Note: "Many-to-Many relationship between Services and Networks"
 }
+
 
 // -----------------------------------------------------------------------------
 // SECRETS MANAGEMENT
 // -----------------------------------------------------------------------------
 
+
 Table secrets {
-  id uuid [pk]
-  organization_id uuid [ref: > organizations.id]
+ id uuid [pk]
+ organization_id uuid [ref: > organizations.id]
 
-  name varchar
-  value_encrypted text
-  description text
 
-  last_used_at timestamp
-  rotation_interval_days int
+ name varchar
+ value_encrypted text
+ description text
 
-  created_by uuid [ref: > users.id]
-  created_at timestamp
-  updated_by uuid [ref: > users.id]
-  updated_at timestamp
 
-  Note: "Centralized secrets for use across services"
+ last_used_at timestamp
+ rotation_interval_days int
+
+
+ created_by uuid [ref: > users.id]
+ created_at timestamp
+ updated_by uuid [ref: > users.id]
+ updated_at timestamp
+
+
+ Note: "Centralized secrets for use across services"
 }
+
 
 // -----------------------------------------------------------------------------
 // BACKUP & RESTORE
 // -----------------------------------------------------------------------------
 
+
 Table backup_policies {
-  id uuid [pk]
-  service_id uuid [ref: > services.id]
+ id uuid [pk]
+ service_id uuid [ref: > services.id]
 
-  name varchar [not null]
-  type schedule_type [not null, default: 'daily']
-  schedule varchar [note: "0 2 * * *"]
-  retention_days int [default: 30]
-  bk_type backup_type [note: "volume, database_dump, config_only"]
-  volume_id uuid [ref: > volumes.id, null]
 
-  destination varchar [note: "s3://bucket/path or local path or ftp://server/path or endpoint"]
-  storage_config json [note: "Credentials and settings for the storage destination"]
+ name varchar [not null]
+ type schedule_type [not null, default: 'daily']
+ schedule varchar [note: "0 2 * * *"]
+ retention_days int [default: 30]
+ bk_type backup_type [note: "volume, database_dump, config_only"]
+ volume_id uuid [ref: > volumes.id, null]
 
-  last_run timestamp
-  next_run timestamp
-  created_by uuid [ref: > users.id]
-  created_at timestamp
-  active boolean [default: true]
 
-  Note: "Defines backup schedules and retention for services"
+ destination varchar [note: "s3://bucket/path or local path or ftp://server/path or endpoint"]
+ storage_config json [note: "Credentials and settings for the storage destination"]
+
+
+ last_run timestamp
+ next_run timestamp
+ created_by uuid [ref: > users.id]
+ created_at timestamp
+ active boolean [default: true]
+
+
+ Note: "Defines backup schedules and retention for services"
 }
+
 
 Table backups {
-  id uuid [pk]
-  policy_id uuid [ref: > backup_policies.id]
-  service_id uuid [ref: > services.id]
+ id uuid [pk]
+ policy_id uuid [ref: > backup_policies.id]
+ service_id uuid [ref: > services.id]
 
-  status backups_status [not null, default: 'pending']
-  started_at timestamp
-  finished_at timestamp
 
-  size int [note: "Size in bytes"]
-  storage_location varchar [note: "s3://bucket/path or local path or ftp://server/path"]
-  checksum varchar
+ status backups_status [not null, default: 'pending']
+ started_at timestamp
+ finished_at timestamp
 
-  error_message varchar
-  log text
 
-  created_at timestamp [default: `now()`]
-  created_by uuid [ref: > users.id]
+ size int [note: "Size in bytes"]
+ storage_location varchar [note: "s3://bucket/path or local path or ftp://server/path"]
+ checksum varchar
 
-  Note: "Tracks backup operations for services"
+
+ error_message varchar
+ log text
+
+
+ created_at timestamp [default: `now()`]
+ created_by uuid [ref: > users.id]
+
+
+ Note: "Tracks backup operations for services"
 }
+
 
 Table restore_backups_events {
-  id uuid [pk]
-  backup_id uuid [ref: > backups.id]
-  service_id uuid [ref: > services.id]
+ id uuid [pk]
+ backup_id uuid [ref: > backups.id]
+ service_id uuid [ref: > services.id]
 
-  status restore_backups_events_status [not null, default: 'pending']
-  started_at timestamp
-  finished_at timestamp
-  duration int [note: "Duration in seconds"]
 
-  error_message varchar
-  log text
+ status restore_backups_events_status [not null, default: 'pending']
+ started_at timestamp
+ finished_at timestamp
+ duration int [note: "Duration in seconds"]
 
-  created_at timestamp [default: `now()`]
-  created_by uuid [ref: > users.id]
 
-  Note: "Tracks restore operations from backups"
+ error_message varchar
+ log text
+
+
+ created_at timestamp [default: `now()`]
+ created_by uuid [ref: > users.id]
+
+
+ Note: "Tracks restore operations from backups"
 }
+
 
 // -----------------------------------------------------------------------------
 // AUTOSCALING
 // -----------------------------------------------------------------------------
 
+
 Table autoscaling_rules {
-  id uuid [pk]
-  service_id uuid [ref: > services.id, unique]
+ id uuid [pk]
+ service_id uuid [ref: > services.id, unique]
 
-  metric autoscaling_metric [not null]
-  threshold_percent float [not null]
-  min_instances int [default: 1]
-  max_instances int [default: 10]
 
-  scale_up_cooldown int [default: 300, note: "Seconds to wait after scaling up"]
-  scale_down_cooldown int [default: 600, note: "Seconds to wait after scaling down"]
+ metric autoscaling_metric [not null]
+ threshold_percent float [not null]
+ min_instances int [default: 1]
+ max_instances int [default: 10]
 
-  request_per_replica int [note: "Number of requests each instance can handle"]
 
-  created_by uuid [ref: > users.id]
-  created_at timestamp
-  updated_by uuid [ref: > users.id]
-  updated_at timestamp
+ scale_up_cooldown int [default: 300, note: "Seconds to wait after scaling up"]
+ scale_down_cooldown int [default: 600, note: "Seconds to wait after scaling down"]
 
-  active boolean [default: false]
 
-  Note: "Rules to automatically scale service instances"
+ request_per_replica int [note: "Number of requests each instance can handle"]
+
+
+ created_by uuid [ref: > users.id]
+ created_at timestamp
+ updated_by uuid [ref: > users.id]
+ updated_at timestamp
+
+
+ active boolean [default: false]
+
+
+ Note: "Rules to automatically scale service instances"
 }
+
 
 Table scaling_events {
-  id uuid [pk]
-  service_id uuid [ref: > services.id]
+ id uuid [pk]
+ service_id uuid [ref: > services.id]
 
-  action varchar [note: "scale_up or scale_down"]
-  previous_instance_count int
-  new_instance_count int
-  reason varchar [note: "E.g., 'CPU usage exceeded threshold'"]
-  metric_value float [note: "The metric value that triggered the scaling"]
 
-  created_at timestamp [default: `now()`]
+ action varchar [note: "scale_up or scale_down"]
+ previous_instance_count int
+ new_instance_count int
+ reason varchar [note: "E.g., 'CPU usage exceeded threshold'"]
+ metric_value float [note: "The metric value that triggered the scaling"]
+
+
+ created_at timestamp [default: `now()`]
 }
+
 
 // -----------------------------------------------------------------------------
 // SYSTEM SETTINGS
 // -----------------------------------------------------------------------------
 
+
 Table system_settings {
-  id uuid [pk]
-  organization_id uuid [ref: > organizations.id]
-  key varchar [unique, not null]
-  value text
-  category varchar [note: "E.g., 'authentication', 'notifications'"]
-  description text
+ id uuid [pk]
+ organization_id uuid [ref: > organizations.id]
+ key varchar [unique, not null]
+ value text
+ category varchar [note: "E.g., 'authentication', 'notifications'"]
+ description text
 
-  encrypted boolean [default: false]
-  updated_at timestamp [default: `now()`]
-  updated_by uuid [ref: > users.id]
 
-  Indexes {
-    (category)
-    (organization_id, key) [unique]
-  }
+ encrypted boolean [default: false]
+ updated_at timestamp [default: `now()`]
+ updated_by uuid [ref: > users.id]
 
-  note: "Key-Value store for system-wide settings"
+
+ Indexes {
+   (category)
+   (organization_id, key) [unique]
+ }
+
+
+ note: "Key-Value store for system-wide settings"
 }
+
+
+// -----------------------------------------------------------------------------
+// GRANULAR RBAC SYSTEM
+// -----------------------------------------------------------------------------
+
+
+Table resources {
+ id uuid [pk]
+ name varchar [not null]
+
+
+ created_at timestamp [default: 'now()']
+
+
+ note: 'table for store tables'
+}
+
+
+Table permissions {
+ id uuid [pk]
+  name varchar [not null]
+ resource uuid [ref: > resources.id, note: "service, node, secret, etc."]
+
+
+ can_create boolean
+ can_update boolean
+ can_delete boolean
+ can_read boolean
+  created_at timestamp [default: `now()`]
+}
+
+
+Table roles {
+ id uuid [pk]
+ organization_id uuid [ref: > organizations.id, null, note: "Null = System Role (Global)"]
+ name varchar [not null, note: "Ex: 'Junior Dev', 'Auditor'"]
+ description text
+ is_system boolean [default: false, note: "If true, cannot be edited/deleted"]
+  created_at timestamp [default: `now()`]
+ created_by uuid [ref: > users.id]
+ updated_at timestamp
+ updated_by uuid [ref: > users.id]
+}
+
+
+Table role_permissions {
+ role_id uuid [ref: > roles.id]
+ permission_id uuid [ref: > permissions.id]
+  Indexes {
+   (role_id, permission_id) [pk]
+ }
+}
+
+
+Table organization_members {
+ organization_id uuid [ref: > organizations.id]
+ user_id uuid [ref: > users.id]
+  role_id uuid [ref: > roles.id]
+  joined_at timestamp [default: `now()`]
+
+
+ Indexes {
+   (organization_id, user_id) [pk]
+ }
+}
+
+
+
+
 
