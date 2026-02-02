@@ -31,6 +31,11 @@ tasks:
     cmds:
       - air -c .air.agent.toml
 
+  dev:cli:
+    desc: "Starts only the CLI with Hot Reload"
+    cmds:
+      - air -c .air.cli.toml
+
   generate:
     desc: "Regenerates all code (Ent, Proto, Mocks)"
     cmds:
@@ -65,6 +70,8 @@ tasks:
       - CGO_ENABLED=0 GOOS={{.GOOS}} go build -o {{.BIN_DIR}}/server ./cmd/server
       - echo "Building Agent..."
       - CGO_ENABLED=0 GOOS={{.GOOS}} go build -o {{.BIN_DIR}}/agent ./cmd/agent
+      - echo "Building CLI..."
+      - CGO_ENABLED=0 GOOS={{.GOOS}} go build -o {{.BIN_DIR}}/cli ./cmd/cli
     sources:
       - "**/*.go"
       - "go.mod"
