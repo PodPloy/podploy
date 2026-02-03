@@ -16,10 +16,12 @@ tasks:
     desc: "Installs Git hooks (Run this once after cloning)"
     cmds:
       - lefthook install
+      - go mod download
+      - go mod tidy
 
   dev:
-    desc: "Starts BOTH Server and Agent in parallel (Logs will be mixed)"
-    deps: [dev:server, dev:agent]
+    desc: "Starts BOTH Server, Agent and cli in parallel (Logs will be mixed)"
+    deps: [dev:server, dev:agent, dev:cli]
 
   dev:server:
     desc: "Starts only the SERVER with Hot Reload"

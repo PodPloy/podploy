@@ -12,23 +12,52 @@
     in
     {
       devShells.${system}.default = pkgs.mkShell {
+        nativeBuildInputs = [ pkgs.pkg-config ];
         buildInputs = with pkgs; [
+          # --- Go Language & Compiler ---
           go
+          gcc
+
+          # --- Task Runners & Hot Reload ---
           go-task
           lefthook
           air
+
+          # --- Code Quality & Testing ---
           go-mockery_2
           golangci-lint
+          govulncheck
+
+          # --- Database & Migrations ---
           atlas
+          sqlite
+
+          # --- Protobuf & gRPC ---
           protobuf
           protoc-gen-go
           protoc-gen-go-grpc
+
+          # --- Containerization & Orchestration ---
+          podman
+
+          # --- Networking ---
+          slirp4netns
+          runc    
+          conmon
+          skopeo
+          slirp4netns
+          fuse-overlayfs
         ];
 
         shellHook = ''
           export GOPATH=$HOME/go
           export PATH=$GOPATH/bin:$PATH
-          echo "🚀 Welcome to the Go & Protobuf Flake shell"
+
+          export CGO_ENABLED=1
+
+          echo "🚀 PodPloy DevShell Ready"
+          task setup
+          echo "📦 Go $(go version) | Podman $(podman --version)"
         '';
       };
     };

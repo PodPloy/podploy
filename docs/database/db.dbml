@@ -3,11 +3,11 @@
 // -----------------------------------------------------------------------------
 
 Enum job_status {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
-  CANCELLED
+  pending
+  in_process
+  completed
+  failed
+  canceled
 }
 
 Enum notification_provider {
@@ -18,9 +18,9 @@ Enum notification_provider {
 }
 
 Enum terminal_sessions_status {
-  ACTIVE
-  CLOSED
-  TERMINATED_BY_ADMIN
+  active
+  closed
+  terminated_by_admin
 }
 
 Enum backup_type {
@@ -226,7 +226,8 @@ Table nodes {
   graph_driver varchar [note: "overlay2, devicemapper, etc."]
 
   wireguard_public_key varchar
-  mesh_ip_address varchar [note: "10.x.x.x internal IP"]
+  listen_port int [default: 51820]
+  external_host varchar
   is_dedicated boolean [default: false, note: 'if true only use for one service']
 
   active boolean [default: true]
@@ -285,7 +286,11 @@ Table audit_logs {
     (resource_type, resource_id)
   }
 
-  note: "Immutable log of all significant actions for compliance"
+  Note: '''
+    PARTITION STRATEGY: Range Partitioning by 'created_at'.
+    RETENTION POLICY: 90 days in hot storage, then archive to S3/Cold Storage.
+    REASON: High-write volume in event-driven systems.
+  '''
 }
 
 // -----------------------------------------------------------------------------
@@ -444,13 +449,11 @@ Table services {
 Table service_containers {
   id uuid [pk]
   service_id uuid [ref: > services.id, note: "Include in pod"]
+  instance_id uuid [ref: > service_instances.id]
 
   name varchar [not null]
-
   source_type source_type [default: 'git_repo']
-
   template_id uuid [ref: > templates.id]
-
   repository_id uuid [ref: > repositories.id, null]
   branch varchar [default: 'master']
   build_context varchar [default: '/']
@@ -482,12 +485,14 @@ Table service_instances {
   id uuid [pk]
   service_id uuid [ref: > services.id]
   node_id uuid [ref: > nodes.id]
-  container_id varchar [note: "Podman Container ID"]
 
   status instance_status [default: 'stopped']
   started_at timestamp
   stopped_at timestamp
   restart_count int [default: 0]
+  last_exit_code int
+  next_retry_at timestamp
+  failure_reason text
 
   created_by uuid [ref: > users.id]
   created_at timestamp
@@ -520,6 +525,7 @@ Table env_vars {
   key varchar [not null]
   value varchar [note: "ENCRYPTED with XChaCha20 if is_secret=true"]
   is_secret boolean [default: false]
+  secret_id uuid [ref: > secrets.id, null]
 
   created_by uuid [ref: > users.id]
   updated_by uuid [ref: > users.id]
@@ -642,6 +648,7 @@ Table networks {
   driver varchar [default: "bridge"]
   subnet varchar
   is_public boolean [default: false]
+  is_mesh boolean [default: true]
 
   created_at timestamp [default: `now()`]
   created_by uuid [ref: > users.id]
@@ -649,6 +656,19 @@ Table networks {
   updated_by uuid [ref: > users.id]
 
   Note: "Virtual networks for service communication"
+}
+
+Table node_networks {
+  node_id uuid [ref: > nodes.id]
+  network_id uuid [ref: > networks.id]
+  mesh_ip varchar [note: "IP asignada al nodo dentro de ESTA red"]
+  is_relay boolean [default: false, note: "Si el nodo actúa como punto central"]
+  
+  Indexes {
+    (node_id, network_id) [pk]
+  }
+
+  note: "Many-to-Many relationship between Nodes and Networks"
 }
 
 Table service_networks {
@@ -677,6 +697,8 @@ Table secrets {
 
   last_used_at timestamp
   rotation_interval_days int
+  version int [default: 1]
+  is_managed boolean [default: false]
 
   created_by uuid [ref: > users.id]
   created_at timestamp
@@ -684,6 +706,16 @@ Table secrets {
   updated_at timestamp
 
   Note: "Centralized secrets for use across services"
+}
+
+Table secret_mounts {
+  id uuid [pk]
+  container_id uuid [ref: > service_containers.id]
+  secret_id uuid [ref: > secrets.id]
+  mount_path varchar [not null, note: "Ej: /run/secrets/api_key.txt"]
+  permissions varchar [default: "0400"]
+
+  note: "Mount points for injecting secrets into containers"
 }
 
 // -----------------------------------------------------------------------------
@@ -914,6 +946,8 @@ Table notification_channels {
   indexes {
     (organization_id, provider)
   }
+
+  Note: "Channels for sending notifications on system events"
 }
 
 // ==========================================
