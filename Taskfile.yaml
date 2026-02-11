@@ -39,15 +39,14 @@ tasks:
       - air -c .air.cli.toml
 
   generate:
-    desc: "Regenerates all code (Ent, Proto, Mocks)"
+    desc: "Regenerates all code (Ent, Proto)"
     cmds:
       - task: generate:ent
       - task: generate:proto
-      - task: generate:mocks
 
   generate:ent:
     desc: "Generates Ent ORM code"
-    dir: internal/adapter/storage/ent
+    dir: internal/adapter/storage/db
     cmds:
       - go generate ./...
     sources:
