@@ -1,0 +1,9 @@
+[hub]
+port = 8080                            # Server port
+host = "0.0.0.0"                       # Server host address
+log_level = "info"                     # "debug", "info", "warn", "error", "dpanic", "panic", or "fatal"
+environment = "development"            # "development" or "production"
+output_path = "~/.podploy/podploy.log" # log file path
+maxsize = 300                          # MB
+maxbackups = 10                        # number of backup files to keep
+maxage = 60                            # days to keep old log files
