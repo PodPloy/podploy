@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 vars:
   MODULE: github.com/PodPloy/podploy
@@ -26,7 +26,7 @@ tasks:
   dev:server:
     desc: "Starts only the SERVER with Hot Reload"
     cmds:
-      - air -c .air.server.toml
+      - air -c .air.hub.toml
 
   dev:agent:
     desc: "Starts only the AGENT with Hot Reload"
