@@ -112,7 +112,7 @@ func New(cfg *Config) (*Logger, error) {
 	core := zapcore.NewCore(
 		encoder,
 		writeSyncer,
-		atomicLevel, 
+		atomicLevel,
 	)
 
 	options := []zap.Option{
@@ -140,14 +140,14 @@ func getWriteSyncer(path string, maxSize, maxBks, maxAge int, development bool) 
     }
 
 	var fileSyncer zapcore.WriteSyncer = zapcore.AddSync(lumberjackLogger)
-    
+
     if development {
         return zapcore.NewMultiWriteSyncer(
             zapcore.AddSync(os.Stdout),
             fileSyncer,
         )
     }
-    
+
     return fileSyncer
 }
 
@@ -224,7 +224,7 @@ func parseLevel(level string) (zapcore.Level, error) {
 	if err == nil {
 		return l, nil
 	}
-    
+
     switch strings.ToLower(level) {
     case "warn", "warning":
         return zapcore.WarnLevel, nil
@@ -247,7 +247,7 @@ func ProductionLogger(path string) (*Logger, error) {
 	if path == "" {
 		path = "~/podploy/podploy.log"
 	}
-	
+
 	return New(&Config{
 		Level:       "info",
 		OutputPath:  path,
