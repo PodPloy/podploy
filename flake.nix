@@ -42,7 +42,7 @@
 
           # --- Networking ---
           slirp4netns
-          runc    
+          runc
           conmon
           skopeo
           slirp4netns
