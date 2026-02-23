@@ -1,16 +1,27 @@
 package main
 
 import (
+	"context"
+	"flag"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/PodPloy/podploy/internal/adapter/config"
 	"github.com/PodPloy/podploy/internal/adapter/http"
 	"github.com/PodPloy/podploy/internal/adapter/logger"
+	"github.com/PodPloy/podploy/internal/domain/ports"
 )
 
 func main() {
-	fmt.Println("Starting server...")
-	cfgPath := "hub.example.toml"
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	var cfgPath string
+	flag.StringVar(&cfgPath, "config", "/etc/podploy/hub.toml", "path config file podploy hub")
+	flag.Parse()
+
 	cfg, err := config.LoadHubConfig(cfgPath)
 	if err != nil {
 		fmt.Printf("Error loading config: %v\n", err)
@@ -30,8 +41,9 @@ func main() {
 	})
 	if err != nil {
 		fmt.Printf("Error initializing logger: %v\n", err)
-		return
+		os.Exit(1)
 	}
+	defer log.Sync()
 
 	server, err := http.New(&http.Config{
 		Host:    serverConf.Host(),
@@ -39,13 +51,15 @@ func main() {
 		Origins: serverConf.Origins(),
 	}, log)
 	if err != nil {
-		log.WithError(err)
+		log.Fatal("Error instance server HTTP ", ports.Error(err))
 		return
 	}
 
-	err = server.Start()
+	err = server.Start(ctx)
 	if err != nil {
-		log.WithError(err)
+		log.Fatal("Server Crashed for ", ports.Error(err))
 		return
 	}
+
+	log.Info("Safe Server Close Succesfully")
 }

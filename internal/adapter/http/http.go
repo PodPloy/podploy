@@ -5,16 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
-	"github.com/PodPloy/podploy/internal/domain/ports"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 
 	cmiddleware "github.com/PodPloy/podploy/internal/adapter/http/middlewares"
+	"github.com/PodPloy/podploy/internal/domain/ports"
 )
 
 type Config struct {
@@ -72,23 +69,25 @@ func (s *Server) Group(prefix string, m ...echo.MiddlewareFunc) *echo.Group {
 	return s.server.Group(prefix, m...)
 }
 
-func (s *Server) RegisterRoute(method, path string, handler echo.HandlerFunc) {
-	s.server.AddRoute(echo.Route{
+func (s *Server) RegisterRoute(method, path string, handler echo.HandlerFunc) error {
+	_, err := s.server.AddRoute(echo.Route{
 		Method:  method,
 		Path:    path,
 		Handler: handler,
 	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (s *Server) Start() error {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
+func (s *Server) Start(ctx context.Context) error {
 	address := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
 
 	sc := echo.StartConfig{
 		Address:         address,
-		GracefulTimeout: 5 * time.Second,
+		GracefulTimeout: 15 * time.Second,
 	}
 
 	s.logger.Info("Start Server HTTP ", ports.String("address", address))

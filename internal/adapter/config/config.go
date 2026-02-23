@@ -72,7 +72,6 @@ func LoadHubConfig(path string) (*HubConfig, error) {
 	if err := k.Unmarshal("", &raw); err != nil {
 		return nil, fmt.Errorf("unmarshal hub: %w", err)
 	}
-	fmt.Println(raw)
 
 	conf := &HubConfig{
 		server: ServerConfig{

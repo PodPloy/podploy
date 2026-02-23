@@ -2,15 +2,15 @@ package logger
 
 import (
 	"context"
+	"math"
 	"os"
 	"time"
-
-	"github.com/PodPloy/podploy/internal/domain/ports"
-	port "github.com/PodPloy/podploy/internal/domain/ports"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
+
+	"github.com/PodPloy/podploy/internal/domain/ports"
 )
 
 type Config struct {
@@ -27,9 +27,9 @@ type Logger struct {
 	cfg    *Config
 }
 
-var _ port.ILogger = (*Logger)(nil)
+var _ ports.ILogger = (*Logger)(nil)
 
-func New(cfg *Config) (port.ILogger, error) {
+func New(cfg *Config) (ports.ILogger, error) {
 	if cfg == nil {
 		cfg = &Config{Level: "info", OutputPath: "stdout", Development: true}
 	}
@@ -51,9 +51,9 @@ func New(cfg *Config) (port.ILogger, error) {
 	} else {
 		lumber := &lumberjack.Logger{
 			Filename:   cfg.OutputPath,
-			MaxSize:    int(cfg.MaxSize),
-			MaxBackups: int(cfg.MaxBackups),
-			MaxAge:     int(cfg.MaxAge),
+			MaxSize:    safeParseUintInteger(cfg.MaxSize),
+			MaxBackups: safeParseUintInteger(cfg.MaxBackups),
+			MaxAge:     safeParseUintInteger(cfg.MaxAge),
 			Compress:   true,
 		}
 		writer = zapcore.AddSync(lumber)
@@ -75,7 +75,15 @@ func New(cfg *Config) (port.ILogger, error) {
 	}, nil
 }
 
-func (l *Logger) mapFields(fields []port.Field) []zap.Field {
+func safeParseUintInteger(number uint) int {
+	if number > math.MaxInt {
+		return math.MaxInt
+	}
+
+	return int(number)
+}
+
+func (l *Logger) mapFields(fields []ports.Field) []zap.Field {
 	if len(fields) == 0 {
 		return nil
 	}
@@ -83,15 +91,15 @@ func (l *Logger) mapFields(fields []port.Field) []zap.Field {
 
 	for i, f := range fields {
 		switch f.Type {
-		case port.StringType:
+		case ports.StringType:
 			zf[i] = zap.String(f.Key, f.StringVal)
-		case port.IntType:
+		case ports.IntType:
 			zf[i] = zap.Int64(f.Key, f.IntVal)
-		case port.BoolType:
+		case ports.BoolType:
 			zf[i] = zap.Bool(f.Key, f.IntVal == 1)
-		case port.DurationType:
+		case ports.DurationType:
 			zf[i] = zap.Duration(f.Key, time.Duration(f.IntVal))
-		case port.ErrorType:
+		case ports.ErrorType:
 			if err, ok := f.Any.(error); ok {
 				zf[i] = zap.Error(err)
 			} else {
@@ -104,48 +112,48 @@ func (l *Logger) mapFields(fields []port.Field) []zap.Field {
 	return zf
 }
 
-func (l *Logger) Info(msg string, fields ...port.Field) {
+func (l *Logger) Info(msg string, fields ...ports.Field) {
 	l.logger.Info(msg, l.mapFields(fields)...)
 }
 
-func (l *Logger) Error(msg string, fields ...port.Field) {
+func (l *Logger) Error(msg string, fields ...ports.Field) {
 	l.logger.Error(msg, l.mapFields(fields)...)
 }
 
-func (l *Logger) Debug(msg string, fields ...port.Field) {
+func (l *Logger) Debug(msg string, fields ...ports.Field) {
 	l.logger.Debug(msg, l.mapFields(fields)...)
 }
 
-func (l *Logger) Warn(msg string, fields ...port.Field) {
+func (l *Logger) Warn(msg string, fields ...ports.Field) {
 	l.logger.Warn(msg, l.mapFields(fields)...)
 }
 
-func (l *Logger) Fatal(msg string, fields ...port.Field) {
+func (l *Logger) Fatal(msg string, fields ...ports.Field) {
 	l.logger.Fatal(msg, l.mapFields(fields)...)
 }
 
-func (l *Logger) With(fields ...port.Field) port.ILogger {
+func (l *Logger) With(fields ...ports.Field) ports.ILogger {
 	return &Logger{
 		logger: l.logger.With(l.mapFields(fields)...),
 		cfg:    l.cfg,
 	}
 }
 
-func (l *Logger) WithError(err error) port.ILogger {
+func (l *Logger) WithError(err error) ports.ILogger {
 	return &Logger{
 		logger: l.logger.With(zap.Error(err)),
 		cfg:    l.cfg,
 	}
 }
 
-func (l *Logger) WithUser(userID string) port.ILogger {
+func (l *Logger) WithUser(userID string) ports.ILogger {
 	return &Logger{
 		logger: l.logger.With(zap.String("user_id", userID)),
 		cfg:    l.cfg,
 	}
 }
 
-func (l *Logger) WithRequest(requestID, method, path, status, ip string, latency time.Duration) port.ILogger {
+func (l *Logger) WithRequest(requestID, method, path, status, ip string, latency time.Duration) ports.ILogger {
 	return &Logger{
 		logger: l.logger.With(
 			zap.String("method", method),
@@ -159,7 +167,7 @@ func (l *Logger) WithRequest(requestID, method, path, status, ip string, latency
 	}
 }
 
-func (l *Logger) WithContext(ctx context.Context) port.ILogger {
+func (l *Logger) WithContext(ctx context.Context) ports.ILogger {
 	newLogger := l.logger
 	if reqID, ok := ctx.Value(ports.RequestIDKey).(string); ok {
 		newLogger = newLogger.With(zap.String("request_id", reqID))

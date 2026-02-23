@@ -3,8 +3,9 @@ package middlewares
 import (
 	"time"
 
-	port "github.com/PodPloy/podploy/internal/domain/ports"
 	"github.com/labstack/echo/v5"
+
+	port "github.com/PodPloy/podploy/internal/domain/ports"
 )
 
 func LoggerMiddleware(log port.ILogger) echo.MiddlewareFunc {
