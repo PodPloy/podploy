@@ -8,6 +8,9 @@ import (
 	port "github.com/PodPloy/podploy/internal/domain/ports"
 )
 
+// LoggerMiddleware returns an Echo middleware that logs every HTTP request
+// using the provided ILogger. Each log entry includes the request ID, method,
+// URI, client IP, and response latency.
 func LoggerMiddleware(log port.ILogger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c *echo.Context) error {

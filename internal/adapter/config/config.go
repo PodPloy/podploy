@@ -29,12 +29,16 @@ type rawHubConfig struct {
 	Logger rawLoggerConfig `koanf:"logs"`
 }
 
+// ServerConfig holds the HTTP server configuration values such as host, port,
+// and allowed CORS origins.
 type ServerConfig struct {
 	port    uint
 	host    string
 	origins []string
 }
 
+// LoggerConfig holds the logging configuration values including log level,
+// environment, output path, and log rotation parameters.
 type LoggerConfig struct {
 	level      string
 	env        string
@@ -44,6 +48,8 @@ type LoggerConfig struct {
 	maxBackups uint
 }
 
+// HubConfig is the top-level configuration for the PodPloy hub, aggregating
+// both server and logger settings.
 type HubConfig struct {
 	server ServerConfig
 	logger LoggerConfig
@@ -61,6 +67,8 @@ const (
 	defaultOrigins    = "*"
 )
 
+// LoadHubConfig reads a TOML configuration file from path and returns a
+// validated HubConfig. Missing values are replaced with sensible defaults.
 func LoadHubConfig(path string) (*HubConfig, error) {
 	k := koanf.New(".")
 
@@ -161,46 +169,57 @@ func normalizeLogLevel(level string) (string, error) {
 	}
 }
 
+// Server returns the server configuration section of the hub config.
 func (h *HubConfig) Server() ServerConfig {
 	return h.server
 }
 
+// Logger returns the logger configuration section of the hub config.
 func (h *HubConfig) Logger() LoggerConfig {
 	return h.logger
 }
 
+// Host returns the server bind address (e.g. "0.0.0.0").
 func (s *ServerConfig) Host() string {
 	return s.host
 }
 
+// Origins returns the list of allowed CORS origins.
 func (s *ServerConfig) Origins() []string {
 	return s.origins
 }
 
+// Port returns the TCP port the server listens on.
 func (s *ServerConfig) Port() uint {
 	return s.port
 }
 
+// Level returns the configured log level (e.g. "debug", "info", "warn").
 func (l *LoggerConfig) Level() string {
 	return l.level
 }
 
+// Env returns the runtime environment name (e.g. "production", "development").
 func (l *LoggerConfig) Env() string {
 	return l.env
 }
 
+// OutputPath returns the file path where log output is written.
 func (l *LoggerConfig) OutputPath() string {
 	return l.outputPath
 }
 
+// MaxAge returns the maximum number of days to retain old log files.
 func (l *LoggerConfig) MaxAge() uint {
 	return l.maxAge
 }
 
+// MaxSize returns the maximum size in megabytes of a log file before rotation.
 func (l *LoggerConfig) MaxSize() uint {
 	return l.maxSize
 }
 
+// MaxBackups returns the maximum number of old log files to keep.
 func (l *LoggerConfig) MaxBackups() uint {
 	return l.maxBackups
 }

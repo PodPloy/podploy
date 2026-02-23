@@ -13,6 +13,8 @@ import (
 	"github.com/PodPloy/podploy/internal/domain/ports"
 )
 
+// Config holds the parameters for initializing a Logger, including log level,
+// output destination, and log rotation settings.
 type Config struct {
 	Level       string
 	OutputPath  string
@@ -22,6 +24,8 @@ type Config struct {
 	MaxAge      uint
 }
 
+// Logger is a structured logger backed by zap that implements the
+// ports.ILogger interface.
 type Logger struct {
 	logger *zap.Logger
 	cfg    *Config
@@ -29,6 +33,9 @@ type Logger struct {
 
 var _ ports.ILogger = (*Logger)(nil)
 
+// New creates a new Logger from the given Config. If cfg is nil, sensible
+// defaults are used (info level, stdout, development mode). It configures log
+// encoding, output rotation via lumberjack, and returns a ports.ILogger.
 func New(cfg *Config) (ports.ILogger, error) {
 	if cfg == nil {
 		cfg = &Config{Level: "info", OutputPath: "stdout", Development: true}
@@ -112,26 +119,34 @@ func (l *Logger) mapFields(fields []ports.Field) []zap.Field {
 	return zf
 }
 
+// Info logs a message at the Info level with optional structured fields.
 func (l *Logger) Info(msg string, fields ...ports.Field) {
 	l.logger.Info(msg, l.mapFields(fields)...)
 }
 
+// Error logs a message at the Error level with optional structured fields.
 func (l *Logger) Error(msg string, fields ...ports.Field) {
 	l.logger.Error(msg, l.mapFields(fields)...)
 }
 
+// Debug logs a message at the Debug level with optional structured fields.
 func (l *Logger) Debug(msg string, fields ...ports.Field) {
 	l.logger.Debug(msg, l.mapFields(fields)...)
 }
 
+// Warn logs a message at the Warn level with optional structured fields.
 func (l *Logger) Warn(msg string, fields ...ports.Field) {
 	l.logger.Warn(msg, l.mapFields(fields)...)
 }
 
+// Fatal logs a message at the Fatal level with optional structured fields
+// and then calls os.Exit(1).
 func (l *Logger) Fatal(msg string, fields ...ports.Field) {
 	l.logger.Fatal(msg, l.mapFields(fields)...)
 }
 
+// With returns a new Logger that includes the given fields in every subsequent
+// log entry.
 func (l *Logger) With(fields ...ports.Field) ports.ILogger {
 	return &Logger{
 		logger: l.logger.With(l.mapFields(fields)...),
@@ -139,6 +154,8 @@ func (l *Logger) With(fields ...ports.Field) ports.ILogger {
 	}
 }
 
+// WithError returns a new Logger that attaches the given error to every
+// subsequent log entry under the "error" key.
 func (l *Logger) WithError(err error) ports.ILogger {
 	return &Logger{
 		logger: l.logger.With(zap.Error(err)),
@@ -146,6 +163,8 @@ func (l *Logger) WithError(err error) ports.ILogger {
 	}
 }
 
+// WithUser returns a new Logger that attaches the given user ID to every
+// subsequent log entry under the "user_id" key.
 func (l *Logger) WithUser(userID string) ports.ILogger {
 	return &Logger{
 		logger: l.logger.With(zap.String("user_id", userID)),
@@ -153,6 +172,8 @@ func (l *Logger) WithUser(userID string) ports.ILogger {
 	}
 }
 
+// WithRequest returns a new Logger enriched with HTTP request metadata such as
+// request ID, method, path, status, client IP, and response latency.
 func (l *Logger) WithRequest(requestID, method, path, status, ip string, latency time.Duration) ports.ILogger {
 	return &Logger{
 		logger: l.logger.With(
@@ -167,6 +188,8 @@ func (l *Logger) WithRequest(requestID, method, path, status, ip string, latency
 	}
 }
 
+// WithContext returns a new Logger that extracts contextual values (e.g.
+// request ID) from the given context and attaches them to log entries.
 func (l *Logger) WithContext(ctx context.Context) ports.ILogger {
 	newLogger := l.logger
 	if reqID, ok := ctx.Value(ports.RequestIDKey).(string); ok {
@@ -175,6 +198,8 @@ func (l *Logger) WithContext(ctx context.Context) ports.ILogger {
 	return &Logger{logger: newLogger, cfg: l.cfg}
 }
 
+// Sync flushes any buffered log entries. It should be called before the
+// application exits.
 func (l *Logger) Sync() error {
 	return l.logger.Sync()
 }

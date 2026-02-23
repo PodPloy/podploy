@@ -14,18 +14,23 @@ import (
 	"github.com/PodPloy/podploy/internal/domain/ports"
 )
 
+// Config holds the parameters needed to create a new HTTP server instance.
 type Config struct {
 	Host    string
 	Port    uint
 	Origins []string
 }
 
+// Server wraps an Echo instance and provides methods for configuring
+// middleware, registering routes, and running the HTTP server.
 type Server struct {
 	server *echo.Echo
 	config *Config
 	logger ports.ILogger
 }
 
+// New creates and returns a Server configured with the given Config and logger.
+// It returns an error if cfg or log is nil.
 func New(cfg *Config, log ports.ILogger) (*Server, error) {
 	if cfg == nil {
 		return nil, errors.New("config cannot be nil")
@@ -65,10 +70,13 @@ func (s *Server) setupMiddlewares() {
 	}))
 }
 
+// Group creates a new route group with the given prefix and optional middleware.
 func (s *Server) Group(prefix string, m ...echo.MiddlewareFunc) *echo.Group {
 	return s.server.Group(prefix, m...)
 }
 
+// RegisterRoute registers a single route with the specified HTTP method, path,
+// and handler function. It returns an error if the route cannot be added.
 func (s *Server) RegisterRoute(method, path string, handler echo.HandlerFunc) error {
 	_, err := s.server.AddRoute(echo.Route{
 		Method:  method,
@@ -82,6 +90,8 @@ func (s *Server) RegisterRoute(method, path string, handler echo.HandlerFunc) er
 	return nil
 }
 
+// Start begins listening for HTTP requests. It blocks until the provided
+// context is canceled, at which point it performs a graceful shutdown.
 func (s *Server) Start(ctx context.Context) error {
 	address := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
 
