@@ -1,0 +1,33 @@
+package middlewares
+
+import (
+	"time"
+
+	port "github.com/PodPloy/podploy/internal/domain/ports"
+	"github.com/labstack/echo/v5"
+)
+
+func LoggerMiddleware(log port.ILogger) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
+			start := time.Now()
+
+			err := next(c)
+			if err != nil {
+				c.Logger().Error(err.Error())
+			}
+
+			req := c.Request()
+			res := c.Response()
+
+			reqID := req.Header.Get(echo.HeaderXRequestID)
+			if reqID == "" {
+				reqID = res.Header().Get(echo.HeaderXRequestID)
+			}
+
+			log.WithRequest(reqID, req.Method, req.RequestURI, "", c.RealIP(), time.Since(start))
+
+			return err
+		}
+	}
+}

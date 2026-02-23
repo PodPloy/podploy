@@ -6,6 +6,7 @@ require (
 	github.com/knadh/koanf/parsers/toml v0.1.0
 	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/v2 v2.3.2
+	github.com/labstack/echo/v5 v5.0.4
 	go.uber.org/zap v1.27.1
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
@@ -19,4 +20,5 @@ require (
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/time v0.14.0 // indirect
 )
