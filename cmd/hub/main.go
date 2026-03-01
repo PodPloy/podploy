@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/PodPloy/podploy/internal/adapter/api"
 	"github.com/PodPloy/podploy/internal/adapter/config"
-	"github.com/PodPloy/podploy/internal/adapter/http"
 	"github.com/PodPloy/podploy/internal/adapter/logger"
 	"github.com/PodPloy/podploy/internal/domain/ports"
 )
@@ -43,9 +43,8 @@ func main() {
 		fmt.Printf("Error initializing logger: %v\n", err)
 		os.Exit(1)
 	}
-	defer log.Sync()
 
-	server, err := http.New(&http.Config{
+	server, err := api.New(&api.Config{
 		Host:    serverConf.Host(),
 		Port:    serverConf.Port(),
 		Origins: serverConf.Origins(),
@@ -61,5 +60,9 @@ func main() {
 		return
 	}
 
-	log.Info("Safe Server Close Succesfully")
+	if err := log.Sync(); err != nil {
+		fmt.Printf("Error Sync logger: %v\n", err)
+	}
+
+	log.Info("Safe Server Close Successfully")
 }

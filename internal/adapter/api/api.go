@@ -1,4 +1,5 @@
-package http
+//nolint:revive
+package api
 
 import (
 	"context"
@@ -10,7 +11,7 @@ import (
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 
-	cmiddleware "github.com/PodPloy/podploy/internal/adapter/http/middlewares"
+	cmiddleware "github.com/PodPloy/podploy/internal/adapter/api/middlewares"
 	"github.com/PodPloy/podploy/internal/domain/ports"
 )
 
@@ -47,8 +48,19 @@ func New(cfg *Config, log ports.ILogger) (*Server, error) {
 	}
 
 	s.setupMiddlewares()
+	s.setupBaseRoutes()
 
 	return s, nil
+}
+
+func (s *Server) setupBaseRoutes() {
+	s.server.GET("/health", func(c *echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]bool{"ok": true})
+	})
+
+	s.server.GET("/ready", func(c *echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]bool{"server": true})
+	})
 }
 
 func (s *Server) setupMiddlewares() {
