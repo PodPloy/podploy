@@ -2,6 +2,7 @@
 port = 8080                                # Server port
 host = "0.0.0.0"                           # Server host address
 origins = "*"                              # Server Origins Accept
+timeout = 15
 
 [logs]
 log_level = "info"                         # "debug", "info", "warn", "error", "dpanic", "panic", or "fatal"

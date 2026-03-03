@@ -46,11 +46,8 @@ tasks:
 
   generate:ent:
     desc: "Generates Ent ORM code"
-    dir: internal/adapter/storage/db
     cmds:
-      - go generate ./...
-    sources:
-      - schema/*.go
+      - go generate ./internal/domain/models
 
   generate:proto:
     desc: "Compiles .proto files to Go"

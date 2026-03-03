@@ -29,7 +29,7 @@ Enum backup_type {
   config_only
 }
 
-Enum ssl_status { 
+Enum ssl_status {
   pending   [note: "Waiting for DNS propagation"]
   active    [note: "Certificate issued and valid"]
   failed    [note: "Let's Encrypt failed (Rate limit or DNS error)"]
@@ -478,7 +478,7 @@ Table service_containers {
     (service_id, name) [unique]
   }
 
-  note: "Defines individual containers within a service"  
+  note: "Defines individual containers within a service"
 }
 
 Table service_instances {
@@ -663,7 +663,7 @@ Table node_networks {
   network_id uuid [ref: > networks.id]
   mesh_ip varchar [note: "IP asignada al nodo dentro de ESTA red"]
   is_relay boolean [default: false, note: "Si el nodo actúa como punto central"]
-  
+
   Indexes {
     (node_id, network_id) [pk]
   }
@@ -868,11 +868,11 @@ Table resources {
 
 Table permissions {
   id uuid [pk]
-  
+
   name varchar [not null]
   resource uuid [ref: > resources.id, note: "service, node, secret, etc."]
   action varchar [not null, note: "create, read, update, delete, deploy, etc."]
-  
+
   created_at timestamp [default: `now()`]
 
   note: "Defines specific actions allowed on resources"
@@ -884,7 +884,7 @@ Table roles {
   name varchar [not null, note: "Ex: 'Junior Dev', 'Auditor'"]
   description text
   is_system boolean [default: false, note: "If true, cannot be edited/deleted"]
-  
+
   created_at timestamp [default: `now()`]
   created_by uuid [ref: > users.id]
   updated_at timestamp
@@ -896,7 +896,7 @@ Table roles {
 Table role_permissions {
   role_id uuid [ref: > roles.id]
   permission_id uuid [ref: > permissions.id]
-  
+
   Indexes {
     (role_id, permission_id) [pk]
   }
@@ -907,9 +907,9 @@ Table role_permissions {
 Table organization_members {
   organization_id uuid [ref: > organizations.id]
   user_id uuid [ref: > users.id]
-  
-  role_id uuid [ref: > roles.id] 
-  
+
+  role_id uuid [ref: > roles.id]
+
   joined_at timestamp [default: `now()`]
 
   Indexes {
@@ -928,17 +928,17 @@ Table notification_channels {
   organization_id uuid [not null, ref: > organizations.id]
   name varchar [not null, note: "Ej: Dev Team Slack"]
   provider notification_provider [not null]
-  
+
   // Stores provider specific config.
   // Slack: { "webhook_url": "..." }
   // Telegram: { "bot_token": "...", "chat_id": "..." }
   // Email: { "recipients": ["a@a.com", "b@b.com"] }
-  config json [not null] 
-  
+  config json [not null]
+
   // Events to trigger this channel
   // ["DEPLOY_SUCCESS", "DEPLOY_FAIL", "BACKUP_FAIL", "HEALTH_CRASH"]
-  events text[] [not null] 
-  
+  events text[] [not null]
+
   is_enabled boolean [default: true]
   created_at timestamp [default: `now()`]
   updated_at timestamp [default: `now()`]
@@ -958,17 +958,17 @@ Table personal_access_tokens {
   id uuid [pk]
   user_id uuid [not null, ref: > users.id]
   name varchar [not null, note: "Ej: CI/CD Pipeline Github, Macbook Pro"]
-  
+
   // Store ONLY the hash, never the plain token
   token_hash varchar [not null, unique]
-  
+
   // Scopes for RBAC: ["repo:read", "deploy:create", "system:admin"]
   scopes text[] [not null]
-  
+
   last_used_at timestamp
   expires_at timestamp [note: "Null means never expires (dangerous but needed for CI)"]
   created_at timestamp [default: `now()`]
-  
+
   Note: "Used for CLI authentication and External Tools (CI/CD)"
 }
 
@@ -982,16 +982,16 @@ Table terminal_sessions {
   service_id uuid [not null, ref: > services.id]
   node_id uuid [not null, ref: > nodes.id]
   container_id varchar [note: "The actual container ID on the host at that time"]
-  
+
   started_at timestamp [default: `now()`]
   ended_at timestamp
-  
+
   // "ACTIVE", "CLOSED", "TERMINATED_BY_ADMIN"
   status terminal_sessions_status [default: 'ACTIVE']
-  
+
   // Metadata: IP address, User Agent
   metadata json
-  
+
   Note: "Audit log for 'Exec' into containers (Web Terminal)"
 }
 
@@ -1002,26 +1002,26 @@ Table terminal_sessions {
 Table system_jobs {
   id uuid [pk, default: `gen_random_uuid()`]
   organization_id uuid [ref: > organizations.id]
-  
+
   // "BACKUP_RESTORE", "IMAGE_BUILD", "REPO_SYNC", "SERVICE_SCALE"
   name varchar [not null]
   status job_status [default: 'PENDING']
-  
+
   // Arguments for the job { "service_id": "...", "target_version": "v2" }
   payload json [not null]
-  
+
   // Output or Error message { "error": "Disk full", "duration": "45s" }
-  result json 
-  
+  result json
+
   run_at timestamp [default: `now()`, note: "For scheduled execution"]
   started_at timestamp
   finished_at timestamp
-  
+
   created_at timestamp [default: `now()`]
 
   indexes {
     (status, run_at) // Worker polling index
   }
-  
+
   Note: "Persistence for long-running tasks to survive server restarts"
 }
