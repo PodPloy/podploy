@@ -20,6 +20,7 @@ type Config struct {
 	Host    string
 	Port    uint
 	Origins []string
+	Timeout time.Duration
 }
 
 // Server wraps an Echo instance and provides methods for configuring
@@ -109,7 +110,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 	sc := echo.StartConfig{
 		Address:         address,
-		GracefulTimeout: 15 * time.Second,
+		GracefulTimeout: s.config.Timeout * time.Second,
 	}
 
 	s.logger.Info("Start Server HTTP ", ports.String("address", address))
