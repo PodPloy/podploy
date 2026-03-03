@@ -1,0 +1,12 @@
+[server]
+port = 8080                                # Server port
+host = "0.0.0.0"                           # Server host address
+origins = "*"                              # Server Origins Accept
+
+[logs]
+log_level = "info"                         # "debug", "info", "warn", "error", "dpanic", "panic", or "fatal"
+environment = "development"                # "development" or "production"
+output_path = "stdout"                     # log file path
+max_size = 300                             # MB
+max_backups = 10                           # number of backup files to keep
+max_age = 60                               # days to keep old log files

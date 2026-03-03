@@ -2,104 +2,47 @@ package logger
 
 import (
 	"context"
-	"fmt"
+	"math"
 	"os"
-	"path/filepath"
-	"strings"
+	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
+
+	"github.com/PodPloy/podploy/internal/domain/ports"
 )
 
-// Logger wrapper around zap.SugaredLogger with dynamic log level control.
-// It provides structured logging with context fields and supports both
-// development and production configurations.
-type Logger struct {
-	*zap.SugaredLogger
-	atomicLevel zap.AtomicLevel
-	path  		string
-}
-
+// Config holds the parameters for initializing a Logger, including log level,
+// output destination, and log rotation settings.
 type Config struct {
 	Level       string
 	OutputPath  string
 	Development bool
-	MaxSize     int
-	MaxBackups  int
-	MaxAge      int
+	MaxSize     uint
+	MaxBackups  uint
+	MaxAge      uint
 }
 
-type contextKey string
-
-const defaultLevel = zapcore.InfoLevel
-
-const RequestIDKey contextKey = "request_id"
-
-func (c *Config) validate() error {
-    if c.OutputPath == "" {
-		return fmt.Errorf("output path cannot be empty")
-	}
-
-	if _, err := parseLevel(c.Level); err != nil {
-		return fmt.Errorf("invalid log level %q: %w", c.Level, err)
-	}
-	return nil
+// Logger is a structured logger backed by zap that implements the
+// ports.ILogger interface.
+type Logger struct {
+	logger *zap.Logger
+	cfg    *Config
 }
 
-// New creates a new Logger instance with the provided configuration.
-// It automatically creates the log directory if it doesn't exist.
-// In development mode, logs are written to both stdout and the specified file.
-// The log level can be changed dynamically at runtime using SetLevel().
-func New(cfg *Config) (*Logger, error) {
+var _ ports.ILogger = (*Logger)(nil)
+
+// New creates a new Logger from the given Config. If cfg is nil, sensible
+// defaults are used (info level, stdout, development mode). It configures log
+// encoding, output rotation via lumberjack, and returns a ports.ILogger.
+func New(cfg *Config) (ports.ILogger, error) {
 	if cfg == nil {
-		cfg = &Config{
-			Level:      "info",
-			OutputPath: "~/podploy/podploy.log",
-		}
+		cfg = &Config{Level: "info", OutputPath: "stdout", Development: true}
 	}
 
-	if err := cfg.validate(); err != nil {
-    	return nil, fmt.Errorf("invalid config: %w", err)
-	}
-
-	logPath := cfg.OutputPath
-	if strings.HasPrefix(logPath, "~/") {
-    	dirname, err := os.UserHomeDir()
-    	if err != nil {
-        	return nil, fmt.Errorf("failed to get user home directory: %w", err)
-    	}
-
-    	logPath = filepath.Join(dirname, logPath[2:])
-	}
-
-
-	logDir := filepath.Dir(logPath)
-	if err := os.MkdirAll(logDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create log directory: %w", err)
-	}
-
-	writeSyncer := getWriteSyncer(logPath, cfg.MaxSize, cfg.MaxBackups, cfg.MaxAge, cfg.Development)
-
-	initialLevel, err := zapcore.ParseLevel(cfg.Level)
-	if err != nil {
-		initialLevel = defaultLevel
-	}
-	atomicLevel := zap.NewAtomicLevelAt(initialLevel)
-
-	encoderConfig := zapcore.EncoderConfig{
-		TimeKey:        "time",
-		LevelKey:       "level",
-		NameKey:        "logger",
-		MessageKey:     "msg",
-		StacktraceKey:  "stacktrace",
-		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.CapitalLevelEncoder,
-		EncodeTime:     zapcore.ISO8601TimeEncoder,
-		EncodeDuration: zapcore.StringDurationEncoder,
-		EncodeCaller:   zapcore.ShortCallerEncoder,
-		ConsoleSeparator: " ",
-	}
+	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
 	var encoder zapcore.Encoder
 	if cfg.Development {
@@ -109,148 +52,154 @@ func New(cfg *Config) (*Logger, error) {
 		encoder = zapcore.NewJSONEncoder(encoderConfig)
 	}
 
-	core := zapcore.NewCore(
-		encoder,
-		writeSyncer,
-		atomicLevel,
-	)
-
-	options := []zap.Option{
-		zap.AddCaller(),
-		zap.AddCallerSkip(1),
-		zap.AddStacktrace(zapcore.ErrorLevel),
+	var writer zapcore.WriteSyncer
+	if cfg.OutputPath == "stdout" {
+		writer = zapcore.AddSync(os.Stdout)
+	} else {
+		lumber := &lumberjack.Logger{
+			Filename:   cfg.OutputPath,
+			MaxSize:    safeParseUintInteger(cfg.MaxSize),
+			MaxBackups: safeParseUintInteger(cfg.MaxBackups),
+			MaxAge:     safeParseUintInteger(cfg.MaxAge),
+			Compress:   true,
+		}
+		writer = zapcore.AddSync(lumber)
 	}
 
-	zapLogger := zap.New(core, options...)
+	level, err := zapcore.ParseLevel(cfg.Level)
+	if err != nil {
+		level = zapcore.InfoLevel
+	}
+	atomicLevel := zap.NewAtomicLevelAt(level)
+
+	core := zapcore.NewCore(encoder, writer, atomicLevel)
+
+	z := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1), zap.AddStacktrace(zapcore.ErrorLevel))
 
 	return &Logger{
-		SugaredLogger: zapLogger.Sugar(),
-		atomicLevel:   atomicLevel,
-		path:          logPath,
+		logger: z,
+		cfg:    cfg,
 	}, nil
 }
 
-func getWriteSyncer(path string, maxSize, maxBks, maxAge int, development bool) zapcore.WriteSyncer {
-    lumberjackLogger := &lumberjack.Logger{
-        Filename:   path,
-        MaxSize:    maxSize, // MB
-        MaxBackups: maxBks,
-        MaxAge:     maxAge, // days
-        Compress:   true,
-    }
+func safeParseUintInteger(number uint) int {
+	if number > math.MaxInt {
+		return math.MaxInt
+	}
 
-	var fileSyncer zapcore.WriteSyncer = zapcore.AddSync(lumberjackLogger)
-
-    if development {
-        return zapcore.NewMultiWriteSyncer(
-            zapcore.AddSync(os.Stdout),
-            fileSyncer,
-        )
-    }
-
-    return fileSyncer
+	return int(number)
 }
 
-func (l *Logger) With(fields ...any) *Logger {
+func (l *Logger) mapFields(fields []ports.Field) []zap.Field {
+	if len(fields) == 0 {
+		return nil
+	}
+	zf := make([]zap.Field, len(fields))
+
+	for i, f := range fields {
+		switch f.Type {
+		case ports.StringType:
+			zf[i] = zap.String(f.Key, f.StringVal)
+		case ports.IntType:
+			zf[i] = zap.Int64(f.Key, f.IntVal)
+		case ports.BoolType:
+			zf[i] = zap.Bool(f.Key, f.IntVal == 1)
+		case ports.DurationType:
+			zf[i] = zap.Duration(f.Key, time.Duration(f.IntVal))
+		case ports.ErrorType:
+			if err, ok := f.Any.(error); ok {
+				zf[i] = zap.Error(err)
+			} else {
+				zf[i] = zap.Any(f.Key, f.Any)
+			}
+		default:
+			zf[i] = zap.Any(f.Key, f.Any)
+		}
+	}
+	return zf
+}
+
+// Info logs a message at the Info level with optional structured fields.
+func (l *Logger) Info(msg string, fields ...ports.Field) {
+	l.logger.Info(msg, l.mapFields(fields)...)
+}
+
+// Error logs a message at the Error level with optional structured fields.
+func (l *Logger) Error(msg string, fields ...ports.Field) {
+	l.logger.Error(msg, l.mapFields(fields)...)
+}
+
+// Debug logs a message at the Debug level with optional structured fields.
+func (l *Logger) Debug(msg string, fields ...ports.Field) {
+	l.logger.Debug(msg, l.mapFields(fields)...)
+}
+
+// Warn logs a message at the Warn level with optional structured fields.
+func (l *Logger) Warn(msg string, fields ...ports.Field) {
+	l.logger.Warn(msg, l.mapFields(fields)...)
+}
+
+// Fatal logs a message at the Fatal level with optional structured fields
+// and then calls os.Exit(1).
+func (l *Logger) Fatal(msg string, fields ...ports.Field) {
+	l.logger.Fatal(msg, l.mapFields(fields)...)
+}
+
+// With returns a new Logger that includes the given fields in every subsequent
+// log entry.
+func (l *Logger) With(fields ...ports.Field) ports.ILogger {
 	return &Logger{
-		SugaredLogger: l.SugaredLogger.With(fields...),
-		atomicLevel:   l.atomicLevel,
-		path:          l.path,
+		logger: l.logger.With(l.mapFields(fields)...),
+		cfg:    l.cfg,
 	}
 }
 
-func (l *Logger) WithUser(userID string) *Logger {
-	return l.With("user_id", userID)
-}
-
-func (l *Logger) WithRequest(requestID, method, path string) *Logger {
-	return l.With(
-		"request_id", requestID,
-		"method", method,
-		"path", path,
-	)
-}
-
-func (l *Logger) WithContext(ctx context.Context) *Logger {
-    logger := l
-
-	if deadline, ok := ctx.Deadline(); ok {
-		logger = logger.With("deadline", deadline)
+// WithError returns a new Logger that attaches the given error to every
+// subsequent log entry under the "error" key.
+func (l *Logger) WithError(err error) ports.ILogger {
+	return &Logger{
+		logger: l.logger.With(zap.Error(err)),
+		cfg:    l.cfg,
 	}
+}
 
-	if requestID, ok := ctx.Value(RequestIDKey).(string); ok {
-		logger = logger.With("request_id", requestID)
-	} else if requestID, ok := ctx.Value("request_id").(string); ok {
-		logger = logger.With("request_id", requestID)
+// WithUser returns a new Logger that attaches the given user ID to every
+// subsequent log entry under the "user_id" key.
+func (l *Logger) WithUser(userID string) ports.ILogger {
+	return &Logger{
+		logger: l.logger.With(zap.String("user_id", userID)),
+		cfg:    l.cfg,
 	}
-
-	return logger
 }
 
-func (l *Logger) WithComponent(component string) *Logger {
-	return l.With("component", component)
+// WithRequest returns a new Logger enriched with HTTP request metadata such as
+// request ID, method, path, status, client IP, and response latency.
+func (l *Logger) WithRequest(requestID, method, path, status, ip string, latency time.Duration) ports.ILogger {
+	return &Logger{
+		logger: l.logger.With(
+			zap.String("method", method),
+			zap.String("path", path),
+			zap.String("request_id", requestID),
+			zap.String("status", status),
+			zap.String("ip", ip),
+			zap.Duration("latency", latency),
+		),
+		cfg: l.cfg,
+	}
 }
 
-func (l *Logger) WithError(err error) *Logger {
-	return l.With("error", err.Error())
+// WithContext returns a new Logger that extracts contextual values (e.g.
+// request ID) from the given context and attaches them to log entries.
+func (l *Logger) WithContext(ctx context.Context) ports.ILogger {
+	newLogger := l.logger
+	if reqID, ok := ctx.Value(ports.RequestIDKey).(string); ok {
+		newLogger = newLogger.With(zap.String("request_id", reqID))
+	}
+	return &Logger{logger: newLogger, cfg: l.cfg}
 }
 
+// Sync flushes any buffered log entries. It should be called before the
+// application exits.
 func (l *Logger) Sync() error {
-    err := l.SugaredLogger.Sync()
-    if err != nil {
-        if strings.Contains(err.Error(), "inappropriate ioctl") || strings.Contains(err.Error(), "bad file descriptor") {
-            return nil
-        }
-    }
-
-    return err
-}
-
-func (l *Logger) GetLogPath() string {
-	return l.path
-}
-
-func (l *Logger) SetLevel(level string) error {
-	newLevel, err := parseLevel(level)
-	if err != nil {
-		return fmt.Errorf("unknown log level: %s", level)
-	}
-	l.atomicLevel.SetLevel(newLevel)
-	return nil
-}
-
-func parseLevel(level string) (zapcore.Level, error) {
-    l, err := zapcore.ParseLevel(level)
-	if err == nil {
-		return l, nil
-	}
-
-    switch strings.ToLower(level) {
-    case "warn", "warning":
-        return zapcore.WarnLevel, nil
-    case "err", "error":
-        return zapcore.ErrorLevel, nil
-    default:
-        return defaultLevel, fmt.Errorf("unknown level: %s", level)
-    }
-}
-
-func DefaultLogger() (*Logger, error) {
-	return New(&Config{
-		Level:       "debug",
-		OutputPath:  "~/podploy/podploy.log",
-		Development: true,
-	})
-}
-
-func ProductionLogger(path string) (*Logger, error) {
-	if path == "" {
-		path = "~/podploy/podploy.log"
-	}
-
-	return New(&Config{
-		Level:       "info",
-		OutputPath:  path,
-		Development: false,
-	})
+	return l.logger.Sync()
 }
