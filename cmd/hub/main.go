@@ -48,6 +48,7 @@ func main() {
 		Host:    serverConf.Host(),
 		Port:    serverConf.Port(),
 		Origins: serverConf.Origins(),
+		Timeout: serverConf.Timeout(),
 	}, log)
 	if err != nil {
 		log.Fatal("Error instance server HTTP ", ports.Error(err))
