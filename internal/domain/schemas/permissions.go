@@ -6,8 +6,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
-	"github.com/PodPloy/podploy/pkg/utils"
 	"github.com/google/uuid"
+
+	uuuid "github.com/PodPloy/podploy/pkg/uuid"
 )
 
 // Permission holds the schema definition for the Permission entity.
@@ -18,7 +19,7 @@ type Permission struct {
 // Fields of the Permission.
 func (Permission) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.UUID{}).Default(utils.DefaultUUIDV7),
+		field.UUID("id", uuid.UUID{}).Default(uuuid.DefaultUUIDV7),
 		field.String("name").NotEmpty(),
 		field.String("resource").NotEmpty(),
 		field.String("action").NotEmpty(),

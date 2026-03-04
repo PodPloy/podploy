@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	toml "github.com/knadh/koanf/parsers/toml"
 	file "github.com/knadh/koanf/providers/file"
@@ -10,9 +11,10 @@ import (
 )
 
 type rawServerConfig struct {
-	Host    string `koanf:"host"`
-	Port    uint   `koanf:"port"`
-	Origins string `koanf:"origins"`
+	Host    string        `koanf:"host"`
+	Port    uint          `koanf:"port"`
+	Origins string        `koanf:"origins"`
+	Timeout time.Duration `koanf:"timeout"`
 }
 
 type rawLoggerConfig struct {
@@ -35,6 +37,7 @@ type ServerConfig struct {
 	port    uint
 	host    string
 	origins []string
+	timeout time.Duration
 }
 
 // LoggerConfig holds the logging configuration values including log level,
@@ -65,6 +68,7 @@ const (
 	defaultMaxBackups = 5
 	defaultMaxAge     = 30 // days
 	defaultOrigins    = "*"
+	defaultTimeout    = 15
 )
 
 // LoadHubConfig reads a TOML configuration file from path and returns a
@@ -86,6 +90,7 @@ func LoadHubConfig(path string) (*HubConfig, error) {
 			host:    raw.Server.Host,
 			port:    raw.Server.Port,
 			origins: strings.Split(raw.Server.Origins, ","),
+			timeout: raw.Server.Timeout,
 		},
 		logger: LoggerConfig{
 			level:      raw.Logger.Level,
@@ -107,6 +112,10 @@ func LoadHubConfig(path string) (*HubConfig, error) {
 func normalizeHubConfig(conf *HubConfig) error {
 	if conf.server.host == "" {
 		conf.server.host = defaultHost
+	}
+
+	if conf.server.timeout == 0 {
+		conf.server.timeout = defaultTimeout
 	}
 
 	if conf.server.port == 0 {
@@ -222,4 +231,9 @@ func (l *LoggerConfig) MaxSize() uint {
 // MaxBackups returns the maximum number of old log files to keep.
 func (l *LoggerConfig) MaxBackups() uint {
 	return l.maxBackups
+}
+
+// Timeout returns the maximun time per request
+func (s *ServerConfig) Timeout() time.Duration {
+	return s.timeout
 }

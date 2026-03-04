@@ -6,8 +6,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
-	"github.com/PodPloy/podploy/pkg/utils"
 	"github.com/google/uuid"
+
+	uuuid "github.com/PodPloy/podploy/pkg/uuid"
 )
 
 // Users holds the schema definition for the Users entity.
@@ -18,7 +19,7 @@ type Users struct {
 // Fields of the Users.,
 func (Users) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.UUID{}).Default(utils.DefaultUUIDV7).Immutable(),
+		field.UUID("id", uuid.UUID{}).Default(uuuid.DefaultUUIDV7).Immutable(),
 		field.String("email").Unique().NotEmpty(),
 		field.String("password_hash").NotEmpty(),
 		field.String("full_name").NotEmpty(),

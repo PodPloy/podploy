@@ -6,8 +6,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
-	"github.com/PodPloy/podploy/pkg/utils"
 	"github.com/google/uuid"
+
+	uuuid "github.com/PodPloy/podploy/pkg/uuid"
 )
 
 // Role holds the schema definition for the Role entity.
@@ -18,7 +19,7 @@ type Role struct {
 // Fields of the Role.
 func (Role) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.UUID{}).Default(utils.DefaultUUIDV7),
+		field.UUID("id", uuid.UUID{}).Default(uuuid.DefaultUUIDV7),
 		field.String("name").NotEmpty(),
 		field.String("description").Optional(),
 		field.Bool("is_system").Default(false),

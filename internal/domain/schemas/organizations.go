@@ -6,8 +6,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
-	"github.com/PodPloy/podploy/pkg/utils"
 	"github.com/google/uuid"
+
+	uuuid "github.com/PodPloy/podploy/pkg/uuid"
 )
 
 // Organization holds the schema definition for the Organization entity.
@@ -18,7 +19,7 @@ type Organization struct {
 // Fields of the Organization.
 func (Organization) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.UUID{}).Default(utils.DefaultUUIDV7),
+		field.UUID("id", uuid.UUID{}).Default(uuuid.DefaultUUIDV7),
 		field.String("name").NotEmpty(),
 		field.String("slug").Unique().NotEmpty(),
 		field.Bool("active").Default(true),
