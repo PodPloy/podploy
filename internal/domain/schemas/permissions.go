@@ -19,7 +19,7 @@ type Permission struct {
 // Fields of the Permission.
 func (Permission) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.UUID{}).Default(uuuid.DefaultUUIDV7),
+		field.UUID("id", uuid.UUID{}).Default(uuuid.DefaultUUIDV7).Immutable(),
 		field.String("name").NotEmpty(),
 		field.String("resource").NotEmpty(),
 		field.String("action").NotEmpty(),

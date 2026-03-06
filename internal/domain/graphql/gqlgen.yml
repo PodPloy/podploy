@@ -1,0 +1,27 @@
+schema:
+  - internal/domain/graphql/ent.graphql
+  - internal/domain/graphql/custom.graphql
+
+exec:
+  filename: internal/domain/graphql/generated.go
+  package: graphql
+
+model:
+  filename: internal/domain/graphql/models_gen.go
+  package: graphql
+
+resolver:
+  layout: follow-schema
+  dir: internal/domain/graphql
+  package: graphql
+
+autobind:
+  - "github.com/PodPloy/podploy/internal/domain/ent"
+
+models:
+  ID:
+    model:
+      - github.com/99designs/gqlgen/graphql.UUID
+  Node:
+    model:
+      - github.com/PodPloy/podploy/internal/domain/ent.Noder

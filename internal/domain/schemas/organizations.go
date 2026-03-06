@@ -19,7 +19,7 @@ type Organization struct {
 // Fields of the Organization.
 func (Organization) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.UUID{}).Default(uuuid.DefaultUUIDV7),
+		field.UUID("id", uuid.UUID{}).Default(uuuid.DefaultUUIDV7).Immutable(),
 		field.String("name").NotEmpty(),
 		field.String("slug").Unique().NotEmpty(),
 		field.Bool("active").Default(true),

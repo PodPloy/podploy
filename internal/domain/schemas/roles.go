@@ -19,7 +19,7 @@ type Role struct {
 // Fields of the Role.
 func (Role) Fields() []ent.Field {
 	return []ent.Field{
-		field.UUID("id", uuid.UUID{}).Default(uuuid.DefaultUUIDV7),
+		field.UUID("id", uuid.UUID{}).Default(uuuid.DefaultUUIDV7).Immutable(),
 		field.String("name").NotEmpty(),
 		field.String("description").Optional(),
 		field.Bool("is_system").Default(false),

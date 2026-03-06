@@ -8,6 +8,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/google/uuid"
+
+	uuuid "github.com/PodPloy/podploy/pkg/uuid"
 )
 
 // OrganizationMember holds the schema definition for the join table.
@@ -18,6 +20,7 @@ type OrganizationMember struct {
 // Fields of the OrganizationMember.
 func (OrganizationMember) Fields() []ent.Field {
 	return []ent.Field{
+		field.UUID("id", uuid.UUID{}).Default(uuuid.DefaultUUIDV7).Immutable(),
 		field.UUID("user_id", uuid.UUID{}),
 		field.UUID("organization_id", uuid.UUID{}),
 		field.UUID("role_id", uuid.UUID{}),

@@ -42,12 +42,18 @@ tasks:
     desc: "Regenerates all code (Ent, Proto)"
     cmds:
       - task: generate:ent
-      - task: generate:proto
+      - task: generate:graphql
 
   generate:ent:
     desc: "Generates Ent ORM code"
+    dir: internal/domain/models
     cmds:
-      - go generate ./internal/domain/models
+      - go run -mod=mod entc.go
+
+  generate:graphql:
+    desc: "Generates Graphql"
+    cmds:
+      - go run github.com/99designs/gqlgen generate --config internal/domain/graphql/gqlgen.yml
 
   generate:proto:
     desc: "Compiles .proto files to Go"
