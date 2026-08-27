@@ -5,7 +5,8 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = { self, nixpkgs }:
+  outputs =
+    { self, nixpkgs }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
@@ -14,35 +15,26 @@
       devShells.${system}.default = pkgs.mkShell {
         nativeBuildInputs = [ pkgs.pkg-config ];
         buildInputs = with pkgs; [
-          # --- Go Language & Compiler ---
           go
           gcc
 
-          # --- Task Runners & Hot Reload ---
           go-task
           lefthook
           air
 
-          # --- Code Quality & Testing ---
           go-mockery_2
           golangci-lint
           govulncheck
 
-          # --- Database & Migrations ---
           atlas
           sqlite
 
-          # --- Protobuf & gRPC ---
           protobuf
           protoc-gen-go
           protoc-gen-go-grpc
 
-          # --- Containerization & Orchestration ---
-          podman
-
-          # --- Networking ---
           slirp4netns
-          runc    
+          runc
           conmon
           skopeo
           slirp4netns
